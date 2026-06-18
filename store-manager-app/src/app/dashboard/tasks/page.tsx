@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Clock, CheckCircle2, Circle } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function TasksPage() {
+  const { profile } = useAuth();
+  const canManage = profile?.role === "manager" || profile?.role === "admin";
   const [tasks] = useState([
     { id: "1", title: "Cek Stok Gudang", assignee: "Andi Saputra", status: "todo", deadline: "Hari ini, 14:00" },
     { id: "2", title: "Display Produk Baru", assignee: "Budi Santoso", status: "in_progress", deadline: "Hari ini, 16:00" },
@@ -32,8 +35,9 @@ export default function TasksPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Penugasan Tim</h2>
-        <Dialog>
-          <DialogTrigger render={<Button className="flex items-center gap-2"><Plus className="w-4 h-4" /> Buat Tugas</Button>} />
+        {canManage && (
+          <Dialog>
+            <DialogTrigger render={<Button className="flex items-center gap-2"><Plus className="w-4 h-4" /> Buat Tugas</Button>} />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Buat Tugas Baru</DialogTitle>
@@ -62,6 +66,7 @@ export default function TasksPage() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

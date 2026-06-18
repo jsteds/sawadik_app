@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, FileText, Download, Eye, UploadCloud } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function DocumentsPage() {
   const [search, setSearch] = useState("");
+  const { profile } = useAuth();
+  const canUpload = profile?.role === "manager" || profile?.role === "admin";
   
   // Dummy data for documents
   const docs = [
@@ -28,9 +31,11 @@ export default function DocumentsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold tracking-tight">Dokumen (SOP & WI)</h2>
         
-        <Button className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700">
-          <UploadCloud className="w-4 h-4" /> Upload Dokumen
-        </Button>
+        {canUpload && (
+          <Button className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700">
+            <UploadCloud className="w-4 h-4" /> Upload Dokumen
+          </Button>
+        )}
       </div>
 
       <Card>
