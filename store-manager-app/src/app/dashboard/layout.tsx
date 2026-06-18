@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -15,10 +15,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
-import Onboarding from "@/components/Onboarding";
+import { Menu, X } from "lucide-react";
 
 // ─── Sidebar content (needs auth context) ─────────────────────────────────────
-function SidebarContent() {
+function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (val: boolean) => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
@@ -42,7 +42,26 @@ function SidebarContent() {
     : "?";
 
   return (
-    <aside className="w-64 bg-white dark:bg-zinc-900 border-r flex flex-col transition-all">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-900 border-r flex flex-col transition-transform duration-300 md:relative md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        {/* Close button for mobile */}
+        <button 
+          onClick={() => setIsOpen(false)}
+          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 md:hidden"
+        >
+          <X className="w-5 h-5" />
+        </button>
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b">
         <div className="flex items-center gap-2 font-bold text-xl text-blue-600 dark:text-blue-400">
@@ -84,6 +103,7 @@ function SidebarContent() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={() => setIsOpen(false)} // Close menu on click
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                 isActive
@@ -128,7 +148,7 @@ function SidebarContent() {
 }
 
 // ─── Header (needs auth context) ──────────────────────────────────────────────
-function Header() {
+function Header({ setIsOpen }: { setIsOpen: (val: boolean) => void }) {
   const pathname = usePathname();
   const { profile } = useAuth();
 
@@ -152,10 +172,18 @@ function Header() {
     : "?";
 
   return (
-    <header className="h-16 bg-white dark:bg-zinc-900 border-b flex items-center justify-between px-8">
-      <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-        {currentPage}
-      </h1>
+    <header className="h-16 bg-white dark:bg-zinc-900 border-b flex items-center justify-between px-4 md:px-8">
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-md md:hidden"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+          {currentPage}
+        </h1>
+      </div>
       <div className="flex items-center gap-4">
         {profile?.stores && (
           <span className="hidden sm:block text-xs text-gray-400 dark:text-gray-500">
@@ -177,6 +205,7 @@ function Header() {
 function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
   const { session, profile, loading, signOut } = useAuth();
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Redirect if user is not logged in
   useEffect(() => {
@@ -234,11 +263,11 @@ function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
 
   // Normal flow
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
-      <SidebarContent />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <div className="flex-1 overflow-auto p-8">{children}</div>
+    <div className="flex h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 overflow-hidden">
+      <SidebarContent isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
+      <main className="flex-1 flex flex-col w-full overflow-hidden relative">
+        <Header setIsOpen={setIsMobileMenuOpen} />
+        <div className="flex-1 overflow-auto p-4 md:p-8">{children}</div>
       </main>
     </div>
   );
