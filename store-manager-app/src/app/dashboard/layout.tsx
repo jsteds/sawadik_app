@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { Menu, X } from "lucide-react";
+import Onboarding from "@/components/Onboarding";
 
 // ─── Sidebar content (needs auth context) ─────────────────────────────────────
 function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (val: boolean) => void }) {
@@ -144,6 +145,7 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (va
         </button>
       </div>
     </aside>
+    </>
   );
 }
 
