@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Manajemen Karyawan</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">P</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#section-dashboard" class="nav-item active"><i class="icon-dashboard"></i> Dashboard</a>
+        <a href="#" class="nav-item"><i class="icon-users"></i> Daftar Karyawan</a>
+        <a href="#section-roster" class="nav-item"><i class="icon-calendar"></i> Roster & Jadwal</a>
+        <a href="#section-kontrak" class="nav-item"><i class="icon-file"></i> Kontrak Kerja</a>
+        <a href="#section-incharge" class="nav-item"><i class="icon-key"></i> Periode Incharge</a>
+        <a href="#" class="nav-item"><i class="icon-chart"></i> Laporan</a>
+      </nav>
+      
+      <div class="sidebar-filters">
+        <div class="filter-group">
+          <label>Filter Toko</label>
+          <select id="storeSelect">
+            <option value="">Semua Toko</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Filter Posisi</label>
+          <select id="roleSelect">
+            <option value="">Semua Posisi</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Filter Kontrak</label>
+          <div class="slider-container">
+            <span>Sisa Hari &lt; <span id="contractDaysLabel">30</span></span>
+            <input type="range" id="contractSlider" min="0" max="90" value="30">
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <h1>Dashboard Manajemen Karyawan</h1>
+        <div class="topbar-right">
+          <div class="search-bar">
+            <input type="search" id="searchInput" placeholder="Search">
+            <i class="icon-search"></i>
+          </div>
+          <div class="topbar-actions">
+            <button class="notif-btn" aria-label="Notifikasi"><i class="icon-bell"></i><span class="badge">5</span></button>
+            <div class="user-profile">
+              <div class="avatar"><img src="https://ui-avatars.com/api/?name=Andi&background=random" alt="Andi"></div>
+              <div class="user-info">
+                <span class="user-name">Andi</span>
+                <span class="user-role">(Manager)</span>
+              </div>
+            </div>
+            <!-- Hidden API config button for utility -->
+            <button id="configApiBtn" class="config-btn" title="Konfigurasi API">⚙️</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-body">
+        <!-- Summary Cards -->
+        <div class="summary-cards" id="section-dashboard">
+          <div class="card summary-card bg-purple">
+            <div class="card-icon"><i class="icon-users-large"></i></div>
+            <div class="card-content">
+              <span class="card-label">Total Karyawan</span>
+              <strong class="card-value" id="totalKaryawanVal">0</strong>
+            </div>
+          </div>
+          <div class="card summary-card bg-green">
+            <div class="card-icon"><i class="icon-store"></i></div>
+            <div class="card-content">
+              <span class="card-label">Toko Aktif</span>
+              <strong class="card-value" id="tokoAktifVal">0</strong>
+            </div>
+          </div>
+          <div class="card summary-card bg-blue">
+            <div class="card-icon"><i class="icon-badge"></i></div>
+            <div class="card-content">
+              <span class="card-label">Incharge Hari Ini</span>
+              <strong class="card-value" id="inchargeHariIniVal">0</strong>
+            </div>
+          </div>
+          <div class="card summary-card bg-red">
+            <div class="card-icon"><i class="icon-warning"></i><span class="badge red">7</span></div>
+            <div class="card-content">
+              <span class="card-label">Sisa Kontrak &lt; <span class="contract-label-dynamic">30</span> Hari</span>
+              <strong class="card-value" id="sisaKontrakVal">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Roster & Jadwal Table -->
+        <div class="card section-roster" id="section-roster">
+          <div class="card-header">
+            <div class="tabs" id="rosterTabs">
+              <button class="tab-btn active" data-tab="tab-mingguan"><i class="icon-calendar-blue"></i> Roster & Jadwal (<span id="rosterMonthLabel"></span>)</button>
+              <button class="tab-btn text-muted" data-tab="tab-daftar-roster"><i class="icon-doc"></i> Roster</button>
+              <button class="tab-btn text-muted" data-tab="tab-bulanan"><i class="icon-clock"></i> <span id="rosterMonthLabel2"></span></button>
+              <button class="tab-btn text-muted" data-tab="tab-chart"><i class="icon-chart-line"></i> Chart</button>
+            </div>
+          </div>
+          
+          <div class="tab-content-container">
+            <!-- Tab 1: Mingguan -->
+            <div id="tab-mingguan" class="tab-content active">
+              <div class="table-container">
+                <table id="rosterTable">
+                  <thead><tr id="rosterTableHead"></tr></thead>
+                  <tbody id="rosterTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 2: Daftar Roster -->
+            <div id="tab-daftar-roster" class="tab-content" style="display: none;">
+              <div class="table-container">
+                <table class="kontrak-table">
+                  <thead>
+                    <tr><th>Kode Roster</th><th>Grup</th><th>Jam Masuk</th><th>Jam Keluar</th></tr>
+                  </thead>
+                  <tbody id="shiftCodeTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 3: Bulanan -->
+            <div id="tab-bulanan" class="tab-content" style="display: none;">
+              <div id="bulananWarning" class="text-muted" style="padding: 20px; text-align: center;">Silakan pilih 1 Toko pada Filter Toko untuk melihat jadwal sebulan penuh.</div>
+              <div class="table-container" id="bulananTableContainer" style="display: none;">
+                <table id="rosterBulananTable">
+                  <thead><tr id="rosterBulananTableHead"></tr></thead>
+                  <tbody id="rosterBulananTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 4: Chart -->
+            <div id="tab-chart" class="tab-content" style="display: none; padding: 20px;">
+              <div class="chart-container" id="chartContainer"></div>
+            </div>
+          </div>
+
+          <div class="legend-roster">
+            <span class="legend-item"><span class="swatch bg-teal"></span> Pagi</span>
+            <span class="legend-item"><span class="swatch bg-orange"></span> Siang</span>
+            <span class="legend-item"><span class="swatch bg-darkblue"></span> Malam</span>
+            <span class="legend-item"><span class="swatch bg-red-solid"></span> Libur</span>
+          </div>
+        </div>
+
+        <!-- Bottom Sections -->
+        <div class="bottom-grid">
+          <!-- Periode Incharge -->
+          <div class="card section-incharge" id="section-incharge">
+            <div class="card-header">
+              <h2><i class="icon-key-yellow"></i> Periode Incharge (Hari Ini)</h2>
+              <button class="more-btn">...</button>
+            </div>
+            <div class="incharge-list" id="inchargeList">
+              <!-- Grid items generated by JS -->
+            </div>
+          </div>
+
+          <!-- Kontrak Kerja -->
+          <div class="card section-kontrak" id="section-kontrak">
+            <div class="card-header">
+              <h2><i class="icon-file-gray"></i> Kontrak Kerja & Sisa Hari</h2>
+              <button class="more-btn">...</button>
+            </div>
+            <div class="table-container">
+              <table class="kontrak-table">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>Posisi</th>
+                    <th>Toko</th>
+                    <th>Awal Kontrak</th>
+                    <th>Akhir Kontrak</th>
+                    <th>Sisa Hari</th>
+                  </tr>
+                </thead>
+                <tbody id="kontrakTableBody">
+                  <!-- Data generated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Config Modal (Hidden by default) -->
+  <div id="apiConfigModal" class="modal">
+    <div class="modal-content">
+      <h2>Konfigurasi API Apps Script</h2>
+      <p>Masukkan URL Web App Apps Script untuk mengambil data jadwal.</p>
+      <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+      <label>
+        Tanggal Acuan
+        <input id="dateInput" type="date">
+      </label>
+      <div class="modal-actions">
+        <button id="closeApiBtn" class="secondary-btn">Tutup</button>
+        <button id="loadButton" class="primary-btn">Ambil Data</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
