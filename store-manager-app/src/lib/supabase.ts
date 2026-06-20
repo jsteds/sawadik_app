@@ -186,6 +186,7 @@ export async function getCleaningTasks(): Promise<any[]> {
 
 export async function createCleaningTask(task: {
   area_equipment: string;
+  location_type: string | null;
   assigned_to: string | null;
   store_id: string;
   date: string;
@@ -197,7 +198,8 @@ export async function createCleaningTask(task: {
 export async function uploadCleaningPhoto(
   taskId: string,
   stage: "before" | "progress" | "after",
-  file: File
+  file: File,
+  notes?: string
 ): Promise<{ url: string | null; error: string | null }> {
   const fileExt = file.name.split(".").pop();
   const fileName = `${taskId}-${stage}-${Date.now()}.${fileExt}`;
@@ -215,7 +217,7 @@ export async function uploadCleaningPhoto(
   const photoUrl = data.publicUrl;
 
   // Update task status and photo URL based on stage
-  const updatePayload: any = {};
+  const updatePayload: Record<string, string> = {};
   if (stage === "before") {
     updatePayload.before_photo_url = photoUrl;
     updatePayload.status = "in_progress";
@@ -225,6 +227,10 @@ export async function uploadCleaningPhoto(
   } else if (stage === "after") {
     updatePayload.after_photo_url = photoUrl;
     updatePayload.status = "completed";
+  }
+
+  if (notes) {
+    updatePayload.notes = notes;
   }
 
   const { error: updateError } = await supabase
@@ -257,5 +263,16 @@ export async function deleteCleaningTask(
     .from("general_cleaning")
     .delete()
     .eq("id", taskId);
+  return { error: error ? error.message : null };
+}
+
+export async function bulkCreateCleaningTasks(tasks: {
+  area_equipment: string;
+  location_type: string | null;
+  assigned_to: string | null;
+  store_id: string;
+  date: string;
+}[]): Promise<{ error: string | null }> {
+  const { error } = await supabase.from("general_cleaning").insert(tasks);
   return { error: error ? error.message : null };
 }

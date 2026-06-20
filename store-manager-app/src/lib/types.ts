@@ -77,14 +77,25 @@ export const STATUS_COLORS: Record<Profile["status"], string> = {
 export interface GeneralCleaningTask {
   id: string;
   area_equipment: string;
+  location_type: string | null; // "Area" | "Equipment" | "Mesin" | "Lainnya"
   status: "pending" | "in_progress" | "completed" | "verified";
   assigned_to: string | null;
   store_id: string;
   before_photo_url: string | null;
   progress_photo_url: string | null;
   after_photo_url: string | null;
+  notes: string | null; // catatan dari staff saat upload foto
   date: string;
   created_at: string;
   // joined from profiles table (optional)
   assignee?: Profile | null;
 }
+
+export const LOCATION_TYPES = [
+  "Area",
+  "Equipment",
+  "Mesin",
+  "Lainnya",
+] as const;
+
+export type LocationType = typeof LOCATION_TYPES[number];

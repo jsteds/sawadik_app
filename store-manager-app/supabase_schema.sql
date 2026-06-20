@@ -282,3 +282,12 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ─── UPDATE: Tambahkan kolom baru ke tabel `general_cleaning` ───────────────
+-- Kolom location_type: kategori lokasi (Area / Equipment / Mesin / Lainnya)
+ALTER TABLE public.general_cleaning
+  ADD COLUMN IF NOT EXISTS location_type TEXT;
+
+-- Kolom notes: catatan dari staff saat upload foto
+ALTER TABLE public.general_cleaning
+  ADD COLUMN IF NOT EXISTS notes TEXT;
