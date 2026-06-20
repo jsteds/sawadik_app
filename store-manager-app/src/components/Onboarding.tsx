@@ -13,7 +13,21 @@ export default function Onboarding() {
   const { session, refreshProfile } = useAuth();
   
   // Determine role from user metadata (set during registration)
-  const userRole = session?.user?.user_metadata?.role || "manager";
+  // or fallback to localStorage (set before Google OAuth redirect)
+  const [userRole, setUserRole] = useState<string>("manager");
+
+  useEffect(() => {
+    const metaRole = session?.user?.user_metadata?.role;
+    if (metaRole) {
+      setUserRole(metaRole);
+    } else {
+      const storedRole = localStorage.getItem("intended_role");
+      if (storedRole) {
+        setUserRole(storedRole);
+      }
+    }
+  }, [session]);
+
   const isStaff = userRole === "staff";
 
   const [storeName, setStoreName] = useState("");
