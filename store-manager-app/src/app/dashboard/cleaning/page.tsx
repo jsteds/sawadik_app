@@ -493,11 +493,15 @@ function PhotoUploadModal({ task, onClose, onDone }: PhotoUploadModalProps) {
                     {stage.emoji} {stage.label}
                   </span>
                   <button
-                    disabled={isUploading || isDisabled || isCompleted}
+                    disabled={isUploading || isDisabled}
                     onClick={() => refs[stage.key].current?.click()}
                     className={`
-                      w-full aspect-square rounded-xl border-2 flex flex-col items-center justify-center overflow-hidden relative transition-all
-                      ${url ? "border-emerald-400 dark:border-emerald-600" : isDisabled ? "border-dashed border-zinc-200 dark:border-zinc-700 opacity-40 cursor-not-allowed" : "border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-blue-700 dark:hover:bg-blue-900/10 cursor-pointer"}
+                      group w-full aspect-square rounded-xl border-2 flex flex-col items-center justify-center overflow-hidden relative transition-all
+                      ${url
+                        ? "border-emerald-400 dark:border-emerald-600 hover:border-blue-400 cursor-pointer"
+                        : isDisabled
+                        ? "border-dashed border-zinc-200 dark:border-zinc-700 opacity-40 cursor-not-allowed"
+                        : "border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-blue-700 dark:hover:bg-blue-900/10 cursor-pointer"}
                     `}
                   >
                     {isUploading ? (
@@ -505,8 +509,12 @@ function PhotoUploadModal({ task, onClose, onDone }: PhotoUploadModalProps) {
                     ) : url ? (
                       <>
                         <Image src={url} alt={stage.label} fill className="object-cover" />
-                        <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
-                          <CheckCircle2 className="w-5 h-5 text-white opacity-0 group-hover:opacity-100" />
+                        {/* Replace overlay — shows on hover */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex flex-col items-center justify-center gap-1">
+                          <Sparkles className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <span className="text-[9px] text-white font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                            Ganti
+                          </span>
                         </div>
                       </>
                     ) : (

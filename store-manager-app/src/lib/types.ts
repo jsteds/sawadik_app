@@ -100,3 +100,28 @@ export const LOCATION_TYPES = [
 ] as const;
 
 export type LocationType = typeof LOCATION_TYPES[number];
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+export interface Document {
+  id: string;
+  title: string;
+  category: "sop" | "wi" | "policy" | "other";
+  file_url: string;
+  file_path: string | null; // storage path for deletion
+  file_size: number | null; // bytes
+  store_id: string;
+  uploaded_by: string | null;
+  created_at: string;
+  // joined
+  uploader?: { full_name: string | null } | null;
+}
+
+export const DOCUMENT_CATEGORIES = [
+  { value: "sop", label: "SOP" },
+  { value: "wi", label: "WI" },
+  { value: "policy", label: "Policy" },
+  { value: "other", label: "Lainnya" },
+] as const;
+
+export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]["value"];

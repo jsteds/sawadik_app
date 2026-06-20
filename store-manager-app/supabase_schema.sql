@@ -296,3 +296,8 @@ ALTER TABLE public.general_cleaning
 -- Kolom reference_photo_url: foto referensi area/equipment yang diunggah manager saat membuat tugas
 ALTER TABLE public.general_cleaning
   ADD COLUMN IF NOT EXISTS reference_photo_url TEXT;
+
+-- ─── UPDATE: Tambahkan kolom file_path dan file_size ke tabel `documents` ─────
+ALTER TABLE public.documents
+  ADD COLUMN IF NOT EXISTS file_path TEXT,
+  ADD COLUMN IF NOT EXISTS file_size BIGINT;

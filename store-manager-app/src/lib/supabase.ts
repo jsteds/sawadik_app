@@ -299,3 +299,76 @@ export async function uploadReferencePhoto(
   const { data } = supabase.storage.from("cleaning_photos").getPublicUrl(path);
   return { url: data.publicUrl, error: null };
 }
+
+// ─── Documents (SOP / WI) Helpers ─────────────────────────────────────────────
+
+export async function getDocuments(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*, uploader:profiles(full_name)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getDocuments error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function uploadDocument(
+  file: File,
+  title: string,
+  category: string,
+  storeId: string,
+  uploadedBy: string
+): Promise<{ error: string | null }> {
+  const ext = file.name.split(".").pop();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${storeId}/${Date.now()}_${safeName}`;
+
+  const { error: storageError } = await supabase.storage
+    .from("documents")
+    .upload(path, file, { upsert: false });
+
+  if (storageError) {
+    return { error: storageError.message };
+  }
+
+  const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+
+  const { error: dbError } = await supabase.from("documents").insert({
+    title,
+    category,
+    file_url: urlData.publicUrl,
+    file_path: path,
+    file_size: file.size,
+    store_id: storeId,
+    uploaded_by: uploadedBy,
+  });
+
+  if (dbError) {
+    // Rollback storage upload
+    await supabase.storage.from("documents").remove([path]);
+    return { error: dbError.message };
+  }
+
+  return { error: null };
+}
+
+export async function deleteDocument(
+  docId: string,
+  filePath: string | null
+): Promise<{ error: string | null }> {
+  const { error: dbError } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", docId);
+
+  if (dbError) return { error: dbError.message };
+
+  if (filePath) {
+    await supabase.storage.from("documents").remove([filePath]);
+  }
+
+  return { error: null };
+}
