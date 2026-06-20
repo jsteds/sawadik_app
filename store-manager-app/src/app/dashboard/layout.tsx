@@ -64,14 +64,12 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (va
           <X className="w-5 h-5" />
         </button>
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b">
-          <div className="flex items-center gap-2 font-bold text-xl text-blue-600 dark:text-blue-400">
-            <div className="w-8 h-8 rounded bg-blue-600 text-white flex items-center justify-center">
-              S
-            </div>
-            <span>SAWADIK APP</span>
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <img src="/logo.png" alt="SawadikApp Logo" className="w-8 h-8 rounded-lg object-cover" />
+              <span className="text-xl tracking-tight">SawadikApp</span>
+            </Link>
           </div>
-        </div>
 
         {/* Store info badge */}
         {profile?.stores && (
@@ -240,10 +238,8 @@ function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
         {/* Simple header with logout for onboarding users */}
         <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-8 bg-zinc-900/50 backdrop-blur-sm">
           <div className="flex items-center gap-2 font-bold text-xl text-blue-400">
-            <div className="w-8 h-8 rounded bg-blue-600 text-white flex items-center justify-center font-extrabold">
-              S
-            </div>
-            <span>StoreApp</span>
+            <img src="/logo.png" alt="SawadikApp Logo" className="w-8 h-8 rounded-lg object-cover" />
+            <span>SawadikApp</span>
           </div>
           <button
             onClick={async () => {

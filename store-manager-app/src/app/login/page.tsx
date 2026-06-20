@@ -77,15 +77,15 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-zinc-950 p-4">
       <div className="w-full max-w-md space-y-6">
-        
+
         {/* Role Selector Tabs */}
         <div className="flex p-1 bg-gray-200/50 dark:bg-zinc-900 rounded-xl">
           <button
             onClick={() => setRole("manager")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-              isManager 
-                ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm" 
+              isManager
+                ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
@@ -96,13 +96,13 @@ export default function LoginPage() {
             onClick={() => setRole("staff")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-              !isManager 
-                ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm" 
+              !isManager
+                ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm"
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
             <Users className="w-4 h-4" />
-            Staff Toko
+            Staff
           </button>
         </div>
 
@@ -115,8 +115,8 @@ export default function LoginPage() {
               {isManager ? "Store Manager" : "Staff Toko"}
             </CardTitle>
             <CardDescription className="text-center">
-              {isRegistering 
-                ? "Daftar akun baru untuk mulai bergabung" 
+              {isRegistering
+                ? "Daftar akun baru untuk mulai bergabung"
                 : (isManager ? "Login ke akun Anda untuk mengelola toko" : "Login ke akun Anda untuk melihat tugas")}
             </CardDescription>
           </CardHeader>
@@ -125,10 +125,10 @@ export default function LoginPage() {
               {isRegistering && (
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Nama Lengkap</Label>
-                  <Input 
-                    id="fullName" 
-                    type="text" 
-                    placeholder="Nama Lengkap Anda" 
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Nama Lengkap Anda"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
@@ -137,9 +137,9 @@ export default function LoginPage() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
+                <Input
+                  id="email"
+                  type="email"
                   placeholder={isManager ? "manager@store.com" : "staff@store.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -148,8 +148,8 @@ export default function LoginPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
+                <Input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -160,25 +160,25 @@ export default function LoginPage() {
               {message && <p className="text-sm text-emerald-500">{message}</p>}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className={cn(
                   "w-full transition-colors",
                   !isManager && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                )} 
+                )}
                 disabled={loading}
               >
                 {loading ? "Memproses..." : (isRegistering ? "Daftar" : "Masuk")}
               </Button>
               <div className="text-sm text-center text-slate-500">
                 {isRegistering ? "Sudah punya akun? " : "Belum punya akun? "}
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setIsRegistering(!isRegistering);
                     setError("");
                     setMessage("");
-                  }} 
+                  }}
                   className={cn(
                     "hover:underline",
                     isManager ? "text-blue-600" : "text-emerald-600"
@@ -209,7 +209,7 @@ export default function LoginPage() {
                   if (typeof window !== "undefined") {
                     localStorage.setItem("intended_role", role);
                   }
-                  
+
                   const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {

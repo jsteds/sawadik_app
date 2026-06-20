@@ -17,14 +17,14 @@ export default function Onboarding() {
   const [userRole, setUserRole] = useState<string>("manager");
 
   useEffect(() => {
+    const storedRole = localStorage.getItem("intended_role");
     const metaRole = session?.user?.user_metadata?.role;
-    if (metaRole) {
+    
+    // Prioritaskan localStorage karena Google OAuth tidak membawa role di metadata
+    if (storedRole) {
+      setUserRole(storedRole);
+    } else if (metaRole) {
       setUserRole(metaRole);
-    } else {
-      const storedRole = localStorage.getItem("intended_role");
-      if (storedRole) {
-        setUserRole(storedRole);
-      }
     }
   }, [session]);
 
