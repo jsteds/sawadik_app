@@ -190,6 +190,7 @@ export async function createCleaningTask(task: {
   assigned_to: string | null;
   store_id: string;
   date: string;
+  reference_photo_url?: string | null;
 }): Promise<{ error: string | null }> {
   const { error } = await supabase.from("general_cleaning").insert(task);
   return { error: error ? error.message : null };
@@ -272,7 +273,29 @@ export async function bulkCreateCleaningTasks(tasks: {
   assigned_to: string | null;
   store_id: string;
   date: string;
+  reference_photo_url?: string | null;
 }[]): Promise<{ error: string | null }> {
   const { error } = await supabase.from("general_cleaning").insert(tasks);
   return { error: error ? error.message : null };
+}
+
+/** Upload foto referensi area/equipment ke Supabase Storage. */
+export async function uploadReferencePhoto(
+  file: File,
+  storeId: string
+): Promise<{ url: string | null; error: string | null }> {
+  const ext = file.name.split(".").pop();
+  const fileName = `ref-${storeId}-${Date.now()}.${ext}`;
+  const path = `references/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("cleaning_photos")
+    .upload(path, file, { upsert: true });
+
+  if (uploadError) {
+    return { url: null, error: uploadError.message };
+  }
+
+  const { data } = supabase.storage.from("cleaning_photos").getPublicUrl(path);
+  return { url: data.publicUrl, error: null };
 }

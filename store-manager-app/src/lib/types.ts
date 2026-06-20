@@ -84,6 +84,7 @@ export interface GeneralCleaningTask {
   before_photo_url: string | null;
   progress_photo_url: string | null;
   after_photo_url: string | null;
+  reference_photo_url: string | null; // foto referensi area/equipment yang diunggah manager
   notes: string | null; // catatan dari staff saat upload foto
   date: string;
   created_at: string;

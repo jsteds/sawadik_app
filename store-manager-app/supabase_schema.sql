@@ -291,3 +291,8 @@ ALTER TABLE public.general_cleaning
 -- Kolom notes: catatan dari staff saat upload foto
 ALTER TABLE public.general_cleaning
   ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- ─── UPDATE: Tambahkan kolom reference_photo_url ke tabel `general_cleaning` ─
+-- Kolom reference_photo_url: foto referensi area/equipment yang diunggah manager saat membuat tugas
+ALTER TABLE public.general_cleaning
+  ADD COLUMN IF NOT EXISTS reference_photo_url TEXT;
