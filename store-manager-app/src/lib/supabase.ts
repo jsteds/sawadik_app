@@ -300,6 +300,95 @@ export async function uploadReferencePhoto(
   return { url: data.publicUrl, error: null };
 }
 
+// ─── Daily Cleaning Helpers ────────────────────────────────────────────────────
+
+export async function getDailyCleaningTasks(date: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("daily_cleaning")
+    .select("*, completer:profiles!completed_by(*)")
+    .eq("date", date)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("getDailyCleaningTasks error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function bulkCreateDailyCleaningTasks(tasks: {
+  store_id: string;
+  date: string;
+  shift: string;
+  task_name: string;
+}[]): Promise<{ error: string | null }> {
+  const { error } = await supabase.from("daily_cleaning").insert(tasks);
+  return { error: error ? error.message : null };
+}
+
+export async function completeDailyCleaningTask(
+  taskId: string,
+  userId: string,
+  photoFile?: File | null
+): Promise<{ error: string | null }> {
+  let photoUrl: string | null = null;
+
+  if (photoFile) {
+    const ext = photoFile.name.split(".").pop();
+    const fileName = `daily-${taskId}-${Date.now()}.${ext}`;
+    const path = `daily/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("cleaning_photos")
+      .upload(path, photoFile, { upsert: true });
+
+    if (uploadError) {
+      return { error: uploadError.message };
+    }
+    const { data } = supabase.storage.from("cleaning_photos").getPublicUrl(path);
+    photoUrl = data.publicUrl;
+  }
+
+  const payload: any = {
+    status: "completed",
+    completed_by: userId,
+    completed_at: new Date().toISOString(),
+  };
+
+  if (photoUrl) {
+    payload.photo_url = photoUrl;
+  }
+
+  const { error } = await supabase
+    .from("daily_cleaning")
+    .update(payload)
+    .eq("id", taskId);
+
+  return { error: error ? error.message : null };
+}
+
+export async function uncompleteDailyCleaningTask(
+  taskId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("daily_cleaning")
+    .update({
+      status: "pending",
+      completed_by: null,
+      completed_at: null,
+      photo_url: null,
+    })
+    .eq("id", taskId);
+  return { error: error ? error.message : null };
+}
+
+export async function deleteDailyCleaningTask(
+  taskId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from("daily_cleaning").delete().eq("id", taskId);
+  return { error: error ? error.message : null };
+}
+
 // ─── Documents (SOP / WI) Helpers ─────────────────────────────────────────────
 
 export async function getDocuments(): Promise<any[]> {

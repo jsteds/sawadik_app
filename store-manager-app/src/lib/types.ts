@@ -101,6 +101,25 @@ export const LOCATION_TYPES = [
 
 export type LocationType = typeof LOCATION_TYPES[number];
 
+// ─── Daily Cleaning ───────────────────────────────────────────────────────────
+
+export interface DailyCleaningTask {
+  id: string;
+  store_id: string;
+  date: string;
+  shift: "Opening" | "Mid" | "Closing" | "Lainnya";
+  task_name: string;
+  status: "pending" | "completed";
+  completed_by: string | null;
+  completed_at: string | null;
+  photo_url: string | null;
+  created_at: string;
+  // joined
+  completer?: Profile | null;
+}
+
+export const SHIFT_OPTIONS = ["Opening", "Mid", "Closing", "Lainnya"] as const;
+
 // ─── Documents ────────────────────────────────────────────────────────────────
 
 export interface Document {

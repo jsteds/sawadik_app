@@ -28,7 +28,7 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (va
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Team", href: "/dashboard/team", icon: Users },
     { name: "Dokumen", href: "/dashboard/documents", icon: FileText },
-    { name: "Tugas", href: "/dashboard/tasks", icon: CheckSquare },
+    { name: "Daily Cleaning", href: "/dashboard/daily-cleaning", icon: CheckSquare },
     { name: "General Cleaning", href: "/dashboard/cleaning", icon: Sparkles },
   ];
 
@@ -156,7 +156,7 @@ function Header({ setIsOpen }: { setIsOpen: (val: boolean) => void }) {
     { name: "Dashboard", href: "/dashboard" },
     { name: "My Team", href: "/dashboard/team" },
     { name: "Dokumen", href: "/dashboard/documents" },
-    { name: "Tugas", href: "/dashboard/tasks" },
+    { name: "Daily Cleaning", href: "/dashboard/daily-cleaning" },
     { name: "General Cleaning", href: "/dashboard/cleaning" },
   ];
 
