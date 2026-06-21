@@ -135,15 +135,18 @@ export interface Document {
   file_size: number | null; // bytes
   store_id: string;
   uploaded_by: string | null;
+  is_public: boolean;
   created_at: string;
   // joined
   uploader?: { full_name: string | null } | null;
+  store?: { name: string } | null;
 }
 
 export const DOCUMENT_CATEGORIES = [
   { value: "sop", label: "SOP" },
   { value: "wi", label: "WI" },
   { value: "policy", label: "Policy" },
+  { value: "gc_report", label: "Laporan GC" },
   { value: "other", label: "Lainnya" },
 ] as const;
 

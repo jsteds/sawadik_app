@@ -10,6 +10,7 @@ import {
   uploadReferencePhoto,
   takeoverCleaningTask,
   deleteCleaningTask,
+  uploadGCPdfToPublic,
   getTeamMembers,
   bulkCreateCleaningTasks,
 } from "@/lib/supabase";
@@ -45,12 +46,12 @@ import {
 // ─── PDF Generator ────────────────────────────────────────────────────────────
 
 async function generatePDFReport(
-  tasks: GeneralCleaningTask[],
+  tasks: any[],
   storeName: string,
   storeLocation: string | null,
   managerName: string,
   reportDate: string
-) {
+): Promise<{ fileName: string; blob: Blob }> {
   // Dynamic import to avoid SSR issues
   const { jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
@@ -316,6 +317,8 @@ async function generatePDFReport(
 
   const fileName = `GC_Report_${storeName.replace(/\s+/g, "_")}_${reportDate.replace(/\//g, "-")}.pdf`;
   doc.save(fileName);
+  
+  return { fileName, blob: doc.output("blob") };
 }
 
 function drawPlaceholder(
@@ -743,13 +746,22 @@ export default function GeneralCleaningPage() {
         month: "long",
         year: "numeric",
       });
-      await generatePDFReport(
+      const { fileName, blob } = await generatePDFReport(
         tasks,
         profile.stores?.name ?? "Toko",
         profile.stores?.location ?? null,
         profile.full_name ?? "Manager",
         reportDate
       );
+      
+      if (profile.store_id) {
+        const { error } = await uploadGCPdfToPublic(blob, fileName, profile.store_id, profile.id);
+        if (error) {
+          alert("Laporan PDF berhasil didownload namun gagal dipublish ke Public: " + error);
+        } else {
+          alert("Laporan PDF berhasil didownload dan otomatis dipublish ke folder Publik!");
+        }
+      }
     } catch (err) {
       alert("Gagal generate PDF: " + err);
     }

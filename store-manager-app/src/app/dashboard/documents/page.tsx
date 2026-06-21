@@ -76,6 +76,7 @@ function UploadModal({ onClose, onSuccess, storeId, uploadedBy }: UploadModalPro
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>("sop");
   const [file, setFile] = useState<File | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -86,7 +87,7 @@ function UploadModal({ onClose, onSuccess, storeId, uploadedBy }: UploadModalPro
     if (!title.trim()) { setError("Judul dokumen tidak boleh kosong."); return; }
     setUploading(true);
     setError(null);
-    const { error: err } = await uploadDocument(file, title.trim(), category, storeId, uploadedBy);
+    const { error: err } = await uploadDocument(file, title.trim(), category, storeId, uploadedBy, isPublic);
     setUploading(false);
     if (err) {
       setError(err);
@@ -138,6 +139,20 @@ function UploadModal({ onClose, onSuccess, storeId, uploadedBy }: UploadModalPro
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
+          </div>
+
+          {/* Visibility Checkbox */}
+          <div className="flex items-center gap-2">
+            <input 
+              type="checkbox" 
+              id="isPublic" 
+              checked={isPublic} 
+              onChange={(e) => setIsPublic(e.target.checked)} 
+              className="rounded border-gray-300 text-orange-600 focus:ring-orange-600"
+            />
+            <Label htmlFor="isPublic" className="text-sm font-medium cursor-pointer">
+              Bagikan ke Publik (Semua Cabang)
+            </Label>
           </div>
 
           {/* File picker */}
@@ -210,6 +225,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"internal" | "public">("internal");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -225,10 +241,18 @@ export default function DocumentsPage() {
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
   const filteredDocs = docs.filter((doc) => {
+    // 1. Tab Filter
+    if (activeTab === "internal" && doc.is_public) return false;
+    if (activeTab === "public" && !doc.is_public) return false;
+
+    // 2. Search Filter
     const matchSearch =
       doc.title.toLowerCase().includes(search.toLowerCase()) ||
       doc.category.toLowerCase().includes(search.toLowerCase());
+      
+    // 3. Category Filter
     const matchCat = categoryFilter === "all" || doc.category === categoryFilter;
+    
     return matchSearch && matchCat;
   });
 
@@ -262,6 +286,30 @@ export default function DocumentsPage() {
             Upload Dokumen
           </Button>
         )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-zinc-800">
+        <button
+          onClick={() => setActiveTab("internal")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "internal"
+              ? "border-orange-600 text-orange-600"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
+        >
+          Dokumen Internal
+        </button>
+        <button
+          onClick={() => setActiveTab("public")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "public"
+              ? "border-orange-600 text-orange-600"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
+        >
+          Dokumen Publik
+        </button>
       </div>
 
       {/* Filters */}
@@ -339,9 +387,15 @@ export default function DocumentsPage() {
                       {getFileIcon(doc.file_url)}
                       <div className="min-w-0">
                         <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[240px]">{doc.title}</p>
-                        {doc.uploader?.full_name && (
-                          <p className="text-xs text-slate-400">{doc.uploader.full_name}</p>
-                        )}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          {doc.uploader?.full_name && <span>{doc.uploader.full_name}</span>}
+                          {activeTab === "public" && doc.store?.name && (
+                            <>
+                              <span>•</span>
+                              <span className="font-medium">{doc.store.name}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -377,8 +431,8 @@ export default function DocumentsPage() {
                       >
                         <Download className="w-4 h-4" />
                       </a>
-                      {/* Delete (manager only) */}
-                      {isManager && (
+                      {/* Delete (manager only & must own the file) */}
+                      {isManager && doc.store_id === profile?.store_id && (
                         <button
                           onClick={() => handleDelete(doc)}
                           disabled={deletingId === doc.id}

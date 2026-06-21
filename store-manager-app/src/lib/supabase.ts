@@ -395,7 +395,7 @@ export async function deleteDailyCleaningTask(
 export async function getDocuments(): Promise<any[]> {
   const { data, error } = await supabase
     .from("documents")
-    .select("*, uploader:profiles(full_name)")
+    .select("*, uploader:profiles(full_name), store:stores(name)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -410,7 +410,8 @@ export async function uploadDocument(
   title: string,
   category: string,
   storeId: string,
-  uploadedBy: string
+  uploadedBy: string,
+  isPublic: boolean = false
 ): Promise<{ error: string | null }> {
   const ext = file.name.split(".").pop();
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -434,6 +435,7 @@ export async function uploadDocument(
     file_size: file.size,
     store_id: storeId,
     uploaded_by: uploadedBy,
+    is_public: isPublic,
   });
 
   if (dbError) {
@@ -458,6 +460,44 @@ export async function deleteDocument(
 
   if (filePath) {
     await supabase.storage.from("documents").remove([filePath]);
+  }
+
+  return { error: null };
+}
+
+export async function uploadGCPdfToPublic(
+  pdfBlob: Blob,
+  title: string,
+  storeId: string,
+  uploadedBy: string
+): Promise<{ error: string | null }> {
+  const safeName = title.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${storeId}/GC_Reports/${Date.now()}_${safeName}.pdf`;
+
+  const { error: storageError } = await supabase.storage
+    .from("documents")
+    .upload(path, pdfBlob, { upsert: false });
+
+  if (storageError) {
+    return { error: storageError.message };
+  }
+
+  const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+
+  const { error: dbError } = await supabase.from("documents").insert({
+    title,
+    category: "gc_report",
+    file_url: urlData.publicUrl,
+    file_path: path,
+    file_size: pdfBlob.size,
+    store_id: storeId,
+    uploaded_by: uploadedBy,
+    is_public: true,
+  });
+
+  if (dbError) {
+    await supabase.storage.from("documents").remove([path]);
+    return { error: dbError.message };
   }
 
   return { error: null };
