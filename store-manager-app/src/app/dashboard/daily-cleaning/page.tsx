@@ -9,8 +9,9 @@ import {
   completeDailyCleaningTask,
   uncompleteDailyCleaningTask,
   deleteDailyCleaningTask,
+  getTeamMembers,
 } from "@/lib/supabase";
-import type { DailyCleaningTask } from "@/lib/types";
+import type { DailyCleaningTask, Profile } from "@/lib/types";
 import { SHIFT_OPTIONS } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,8 +32,9 @@ import {
   Trash2,
   Camera,
   X,
-  Clock,
-  ListTodo
+  User,
+  ListTodo,
+  Clock
 } from "lucide-react";
 
 export default function DailyCleaningPage() {
@@ -40,12 +42,14 @@ export default function DailyCleaningPage() {
   const isManager = profile?.role === "manager" || profile?.role === "admin";
 
   const [tasks, setTasks] = useState<DailyCleaningTask[]>([]);
+  const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createShift, setCreateShift] = useState<string>("Opening");
+  const [createAssignee, setCreateAssignee] = useState<string>("");
   const [taskNames, setTaskNames] = useState<string[]>([""]);
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -55,8 +59,12 @@ export default function DailyCleaningPage() {
   const loadData = useCallback(async () => {
     if (!profile?.store_id) return;
     setLoading(true);
-    const data = await getDailyCleaningTasks(selectedDate);
+    const [data, members] = await Promise.all([
+      getDailyCleaningTasks(selectedDate),
+      getTeamMembers()
+    ]);
     setTasks(data as DailyCleaningTask[]);
+    setTeamMembers(members);
     setLoading(false);
   }, [profile?.store_id, selectedDate]);
 
@@ -68,6 +76,12 @@ export default function DailyCleaningPage() {
   // ─── Task Completion ───
   async function toggleTask(task: DailyCleaningTask) {
     if (!profile) return;
+    
+    // Validate if the current user is the assignee or manager
+    if (task.assigned_to !== profile.id && !isManager) {
+      alert("Hanya orang yang ditugaskan atau manager yang dapat mengubah status tugas ini.");
+      return;
+    }
 
     if (task.status === "completed") {
       // Uncheck
@@ -90,6 +104,11 @@ export default function DailyCleaningPage() {
     e.preventDefault();
     if (!profile?.store_id) return;
 
+    if (!createAssignee) {
+      alert("Silakan pilih staf yang ditugaskan.");
+      return;
+    }
+
     const validNames = taskNames.filter(n => n.trim() !== "");
     if (!validNames.length) return;
 
@@ -98,13 +117,15 @@ export default function DailyCleaningPage() {
       store_id: profile.store_id!,
       date: selectedDate,
       shift: createShift,
-      task_name: name.trim()
+      task_name: name.trim(),
+      assigned_to: createAssignee
     }));
 
     const { error } = await bulkCreateDailyCleaningTasks(rows);
     if (!error) {
       setShowCreateModal(false);
       setTaskNames([""]);
+      setCreateAssignee("");
       await loadData();
     } else {
       alert("Gagal membuat tugas: " + error);
@@ -112,11 +133,15 @@ export default function DailyCleaningPage() {
     setCreateLoading(false);
   }
 
-  // Grouping tasks by shift
-  const tasksByShift = SHIFT_OPTIONS.reduce((acc, shift) => {
-    acc[shift] = tasks.filter(t => t.shift === shift);
+  // Grouping tasks by Assignee
+  const tasksByAssignee = tasks.reduce((acc, task) => {
+    const key = task.assigned_to || "unassigned";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(task);
     return acc;
   }, {} as Record<string, DailyCleaningTask[]>);
+
+  const assigneeIds = Object.keys(tasksByAssignee);
 
   return (
     <div className="space-y-6">
@@ -124,10 +149,10 @@ export default function DailyCleaningPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-            Daily Cleaning
+            Penugasan Harian
           </h2>
           <p className="text-sm text-slate-500">
-            Checklist pembersihan harian berdasarkan shift.
+            Daftar tugas pembersihan per individu.
           </p>
         </div>
 
@@ -145,15 +170,29 @@ export default function DailyCleaningPage() {
                 render={
                   <Button className="h-9 gap-2">
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Tambah Checklist</span>
+                    <span className="hidden sm:inline">Tambah Tugas</span>
                   </Button>
                 }
               />
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Buat Checklist Harian</DialogTitle>
+                  <DialogTitle>Tugaskan Pekerjaan</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreateTasks} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>Staf yang Ditugaskan *</Label>
+                    <Select value={createAssignee} onValueChange={(val) => val && setCreateAssignee(val)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih anggota tim" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.filter(m => m.status === 'aktif').map(m => (
+                          <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="space-y-2">
                     <Label>Shift</Label>
                     <Select value={createShift} onValueChange={(val) => val && setCreateShift(val)}>
@@ -169,12 +208,13 @@ export default function DailyCleaningPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Daftar Tugas</Label>
+                    <Label>Daftar Tugas *</Label>
                     {taskNames.map((name, idx) => (
                       <div key={idx} className="flex gap-2">
                         <Input
                           placeholder="Misal: Sapu lantai area kasir"
                           value={name}
+                          required
                           onChange={(e) => {
                             const newNames = [...taskNames];
                             newNames[idx] = e.target.value;
@@ -207,7 +247,7 @@ export default function DailyCleaningPage() {
                   </div>
 
                   <Button type="submit" className="w-full mt-4" disabled={createLoading}>
-                    {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simpan Checklist"}
+                    {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Berikan Tugas"}
                   </Button>
                 </form>
               </DialogContent>
@@ -224,26 +264,34 @@ export default function DailyCleaningPage() {
         <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-dashed">
           <ListTodo className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-slate-700 dark:text-slate-200">Belum ada tugas</h3>
-          <p className="text-slate-500 mt-1 text-sm">Tidak ada checklist untuk tanggal ini.</p>
+          <p className="text-slate-500 mt-1 text-sm">Belum ada staf yang ditugaskan untuk tanggal ini.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {SHIFT_OPTIONS.map((shift) => {
-            const shiftTasks = tasksByShift[shift];
-            if (!shiftTasks?.length) return null;
+          {assigneeIds.map((assigneeId) => {
+            const assigneeTasks = tasksByAssignee[assigneeId];
+            if (!assigneeTasks?.length) return null;
 
-            const completedCount = shiftTasks.filter(t => t.status === "completed").length;
-            const progress = Math.round((completedCount / shiftTasks.length) * 100);
+            const completedCount = assigneeTasks.filter(t => t.status === "completed").length;
+            const progress = Math.round((completedCount / assigneeTasks.length) * 100);
+            
+            const assigneeName = assigneeTasks[0]?.assignee?.full_name || "Belum Ditugaskan";
+            const assigneeAvatar = assigneeTasks[0]?.assignee?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${assigneeName}`;
 
             return (
-              <Card key={shift} className="shadow-sm">
+              <Card key={assigneeId} className="shadow-sm overflow-hidden">
                 <CardHeader className="pb-3 border-b bg-slate-50/50 dark:bg-zinc-900/50">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-blue-500" /> {shift}
-                    </CardTitle>
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border bg-white">
+                        <Image src={assigneeAvatar} alt={assigneeName} fill className="object-cover" unoptimized />
+                      </div>
+                      <CardTitle className="text-lg font-semibold">
+                        {assigneeName}
+                      </CardTitle>
+                    </div>
                     <span className="text-sm font-medium text-slate-500">
-                      {completedCount}/{shiftTasks.length}
+                      {completedCount}/{assigneeTasks.length}
                     </span>
                   </div>
                   {/* Progress bar */}
@@ -256,15 +304,21 @@ export default function DailyCleaningPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {shiftTasks.map((task) => (
+                    {assigneeTasks.map((task) => (
                       <li key={task.id} className="p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors flex gap-3 group items-start">
                         <input
                           type="checkbox"
                           checked={task.status === "completed"}
                           onChange={() => toggleTask(task)}
-                          className="mt-1 w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                          className="mt-1 w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer disabled:opacity-50"
+                          disabled={!isManager && task.assigned_to !== profile?.id}
                         />
                         <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase tracking-wider dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+                              {task.shift}
+                            </span>
+                          </div>
                           <p className={`text-sm font-medium transition-colors ${task.status === "completed"
                               ? "text-slate-400 line-through"
                               : "text-slate-700 dark:text-slate-200"
@@ -275,10 +329,7 @@ export default function DailyCleaningPage() {
                           {task.status === "completed" && task.completer && (
                             <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                              {task.completer.full_name?.split(' ')[0]}
-                              <span className="opacity-50">
-                                • {new Date(task.completed_at!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                              Diselesaikan pada {new Date(task.completed_at!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           )}
                         </div>

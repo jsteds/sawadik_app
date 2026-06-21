@@ -107,15 +107,18 @@ export interface DailyCleaningTask {
   id: string;
   store_id: string;
   date: string;
-  shift: "Opening" | "Mid" | "Closing" | "Lainnya";
+  shift: string;
   task_name: string;
   status: "pending" | "completed";
-  completed_by: string | null;
-  completed_at: string | null;
-  photo_url: string | null;
+  assigned_to?: string;
+  completed_by?: string;
+  completed_at?: string;
+  photo_url?: string;
   created_at: string;
-  // joined
-  completer?: Profile | null;
+  
+  // joined data
+  assignee?: { full_name: string; avatar_url: string };
+  completer?: { full_name: string; avatar_url: string };
 }
 
 export const SHIFT_OPTIONS = ["Opening", "Mid", "Closing", "Lainnya"] as const;
