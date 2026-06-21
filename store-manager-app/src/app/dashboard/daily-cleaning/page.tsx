@@ -34,16 +34,15 @@ import {
   Clock,
   ListTodo
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export default function DailyCleaningPage() {
   const { profile } = useAuth();
   const isManager = profile?.role === "manager" || profile?.role === "admin";
-  
+
   const [tasks, setTasks] = useState<DailyCleaningTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-  
+
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createShift, setCreateShift] = useState<string>("Opening");
@@ -54,12 +53,14 @@ export default function DailyCleaningPage() {
   const [uploadTask, setUploadTask] = useState<DailyCleaningTask | null>(null);
 
   const loadData = useCallback(async () => {
+    if (!profile?.store_id) return;
     setLoading(true);
     const data = await getDailyCleaningTasks(selectedDate);
     setTasks(data as DailyCleaningTask[]);
     setLoading(false);
-  }, [selectedDate]);
+  }, [profile?.store_id, selectedDate]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -67,7 +68,7 @@ export default function DailyCleaningPage() {
   // ─── Task Completion ───
   async function toggleTask(task: DailyCleaningTask) {
     if (!profile) return;
-    
+
     if (task.status === "completed") {
       // Uncheck
       const { error } = await uncompleteDailyCleaningTask(task.id);
@@ -88,7 +89,7 @@ export default function DailyCleaningPage() {
   async function handleCreateTasks(e: React.FormEvent) {
     e.preventDefault();
     if (!profile?.store_id) return;
-    
+
     const validNames = taskNames.filter(n => n.trim() !== "");
     if (!validNames.length) return;
 
@@ -131,8 +132,8 @@ export default function DailyCleaningPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Input 
-            type="date" 
+          <Input
+            type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="w-auto h-9"
@@ -140,12 +141,14 @@ export default function DailyCleaningPage() {
 
           {isManager && (
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-              <DialogTrigger asChild>
-                <Button className="h-9 gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Tambah Checklist</span>
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger
+                render={
+                  <Button className="h-9 gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Tambah Checklist</span>
+                  </Button>
+                }
+              />
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Buat Checklist Harian</DialogTitle>
@@ -153,7 +156,7 @@ export default function DailyCleaningPage() {
                 <form onSubmit={handleCreateTasks} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Shift</Label>
-                    <Select value={createShift} onValueChange={setCreateShift}>
+                    <Select value={createShift} onValueChange={(val) => val && setCreateShift(val)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -164,12 +167,12 @@ export default function DailyCleaningPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label>Daftar Tugas</Label>
                     {taskNames.map((name, idx) => (
                       <div key={idx} className="flex gap-2">
-                        <Input 
+                        <Input
                           placeholder="Misal: Sapu lantai area kasir"
                           value={name}
                           onChange={(e) => {
@@ -179,9 +182,9 @@ export default function DailyCleaningPage() {
                           }}
                         />
                         {taskNames.length > 1 && (
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="icon"
                             onClick={() => {
                               const newNames = taskNames.filter((_, i) => i !== idx);
@@ -193,9 +196,9 @@ export default function DailyCleaningPage() {
                         )}
                       </div>
                     ))}
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
+                    <Button
+                      type="button"
+                      variant="ghost"
                       className="w-full mt-2 text-blue-600 hover:text-blue-700"
                       onClick={() => setTaskNames([...taskNames, ""])}
                     >
@@ -245,7 +248,7 @@ export default function DailyCleaningPage() {
                   </div>
                   {/* Progress bar */}
                   <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full mt-3 overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full transition-all duration-500 ${progress === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
                       style={{ width: `${progress}%` }}
                     />
@@ -254,25 +257,25 @@ export default function DailyCleaningPage() {
                 <CardContent className="p-0">
                   <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {shiftTasks.map((task) => (
-                      <li key={task.id} className="p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors flex gap-3 group">
-                        <Checkbox 
+                      <li key={task.id} className="p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors flex gap-3 group items-start">
+                        <input
+                          type="checkbox"
                           checked={task.status === "completed"}
-                          onCheckedChange={() => toggleTask(task)}
-                          className="mt-1 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                          onChange={() => toggleTask(task)}
+                          className="mt-1 w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium transition-colors ${
-                            task.status === "completed" 
-                              ? "text-slate-400 line-through" 
+                          <p className={`text-sm font-medium transition-colors ${task.status === "completed"
+                              ? "text-slate-400 line-through"
                               : "text-slate-700 dark:text-slate-200"
-                          }`}>
+                            }`}>
                             {task.task_name}
                           </p>
-                          
+
                           {task.status === "completed" && task.completer && (
                             <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                              {task.completer.full_name?.split(' ')[0]} 
+                              {task.completer.full_name?.split(' ')[0]}
                               <span className="opacity-50">
                                 • {new Date(task.completed_at!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                               </span>
@@ -281,9 +284,9 @@ export default function DailyCleaningPage() {
                         </div>
 
                         <div className="flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-7 w-7 text-blue-500 hover:bg-blue-50"
                             onClick={() => setUploadTask(task)}
                             title="Upload Foto Bukti"
@@ -291,9 +294,9 @@ export default function DailyCleaningPage() {
                             <Camera className="w-3.5 h-3.5" />
                           </Button>
                           {isManager && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-7 w-7 text-red-400 hover:text-red-500 hover:bg-red-50"
                               onClick={() => handleDelete(task.id)}
                             >
@@ -313,9 +316,9 @@ export default function DailyCleaningPage() {
 
       {/* Photo Upload Modal */}
       {uploadTask && (
-        <PhotoUploadModal 
-          task={uploadTask} 
-          onClose={() => setUploadTask(null)} 
+        <PhotoUploadModal
+          task={uploadTask}
+          onClose={() => setUploadTask(null)}
           onDone={loadData}
         />
       )}
@@ -324,14 +327,14 @@ export default function DailyCleaningPage() {
 }
 
 // ─── Photo Upload Modal (Opsional) ───
-function PhotoUploadModal({ 
-  task, 
-  onClose, 
-  onDone 
-}: { 
-  task: DailyCleaningTask; 
-  onClose: () => void; 
-  onDone: () => void; 
+function PhotoUploadModal({
+  task,
+  onClose,
+  onDone
+}: {
+  task: DailyCleaningTask;
+  onClose: () => void;
+  onDone: () => void;
 }) {
   const { profile } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -340,11 +343,11 @@ function PhotoUploadModal({
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !profile) return;
-    
+
     setUploading(true);
     const { error } = await completeDailyCleaningTask(task.id, profile.id, file);
     setUploading(false);
-    
+
     if (error) {
       alert("Gagal upload foto: " + error);
     } else {
@@ -363,7 +366,7 @@ function PhotoUploadModal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <p className="text-sm text-slate-500 mb-4">
           Menyertakan foto bersifat opsional. Foto akan membuktikan bahwa <strong>{task.task_name}</strong> telah selesai dengan baik.
         </p>
@@ -374,17 +377,17 @@ function PhotoUploadModal({
           </div>
         ) : null}
 
-        <input 
-          type="file" 
-          accept="image/*" 
-          capture="environment" 
-          className="hidden" 
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
           ref={fileRef}
           onChange={handleFileChange}
         />
 
-        <Button 
-          className="w-full gap-2" 
+        <Button
+          className="w-full gap-2"
           disabled={uploading}
           onClick={() => fileRef.current?.click()}
         >
