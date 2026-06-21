@@ -260,8 +260,14 @@ export default function DailyCleaningPage() {
             const completedCount = assigneeTasks.filter(t => t.status === "completed").length;
             const progress = Math.round((completedCount / assigneeTasks.length) * 100);
             
-            const assigneeName = assigneeTasks[0]?.assignee?.full_name || "Belum Ditugaskan";
-            const assigneeAvatar = assigneeTasks[0]?.assignee?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${assigneeName}`;
+            const firstTask = assigneeTasks[0];
+            const assigneeName = firstTask?.assignee?.full_name || "Belum Ditugaskan";
+            const storeName = firstTask?.store?.name;
+            
+            const isDifferentStore = storeName && profile?.stores && storeName !== profile.stores.name;
+            const displayName = isDifferentStore ? `${assigneeName} (${storeName})` : assigneeName;
+
+            const assigneeAvatar = firstTask?.assignee?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${assigneeName}`;
 
             return (
               <Card key={assigneeId} className="shadow-sm overflow-hidden">
@@ -269,10 +275,10 @@ export default function DailyCleaningPage() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="relative w-8 h-8 rounded-full overflow-hidden border bg-white">
-                        <Image src={assigneeAvatar} alt={assigneeName} fill className="object-cover" unoptimized />
+                        <Image src={assigneeAvatar} alt={displayName} fill className="object-cover" unoptimized />
                       </div>
                       <CardTitle className="text-lg font-semibold">
-                        {assigneeName}
+                        {displayName}
                       </CardTitle>
                     </div>
                     <span className="text-sm font-medium text-slate-500">

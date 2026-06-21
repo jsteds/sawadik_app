@@ -305,7 +305,7 @@ export async function uploadReferencePhoto(
 export async function getDailyCleaningTasks(date: string): Promise<any[]> {
   const { data, error } = await supabase
     .from("daily_cleaning")
-    .select("*, completer:profiles!completed_by(*), assignee:profiles!assigned_to(*)")
+    .select("*, completer:profiles!completed_by(*), assignee:profiles!assigned_to(*), store:stores(name)")
     .eq("date", date)
     .order("created_at", { ascending: true });
 

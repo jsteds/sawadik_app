@@ -119,6 +119,7 @@ export interface DailyCleaningTask {
   // joined data
   assignee?: { full_name: string; avatar_url: string };
   completer?: { full_name: string; avatar_url: string };
+  store?: { name: string };
 }
 
 export const SHIFT_OPTIONS = ["Opening", "Mid", "Closing", "Lainnya"] as const;
