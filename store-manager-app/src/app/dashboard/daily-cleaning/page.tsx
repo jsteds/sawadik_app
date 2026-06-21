@@ -48,7 +48,6 @@ export default function DailyCleaningPage() {
 
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createShift, setCreateShift] = useState<string>("Opening");
   const [createAssignee, setCreateAssignee] = useState<string>("");
   const [taskNames, setTaskNames] = useState<string[]>([""]);
   const [createLoading, setCreateLoading] = useState(false);
@@ -88,9 +87,8 @@ export default function DailyCleaningPage() {
       const { error } = await uncompleteDailyCleaningTask(task.id);
       if (!error) await loadData();
     } else {
-      // Check (tanpa foto)
-      const { error } = await completeDailyCleaningTask(task.id, profile.id, null);
-      if (!error) await loadData();
+      // Harus menggunakan foto untuk menyelesaikan tugas
+      setUploadTask(task);
     }
   }
 
@@ -116,7 +114,6 @@ export default function DailyCleaningPage() {
     const rows = validNames.map(name => ({
       store_id: profile.store_id!,
       date: selectedDate,
-      shift: createShift,
       task_name: name.trim(),
       assigned_to: createAssignee
     }));
@@ -183,25 +180,13 @@ export default function DailyCleaningPage() {
                     <Label>Staf yang Ditugaskan *</Label>
                     <Select value={createAssignee} onValueChange={(val) => val && setCreateAssignee(val)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih anggota tim" />
+                        <SelectValue placeholder="Pilih anggota tim">
+                          {teamMembers.find(m => m.id === createAssignee)?.full_name || "Pilih anggota tim"}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {teamMembers.filter(m => m.status === 'aktif').map(m => (
                           <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Shift</Label>
-                    <Select value={createShift} onValueChange={(val) => val && setCreateShift(val)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SHIFT_OPTIONS.map(opt => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -314,11 +299,6 @@ export default function DailyCleaningPage() {
                           disabled={!isManager && task.assigned_to !== profile?.id}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase tracking-wider dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-                              {task.shift}
-                            </span>
-                          </div>
                           <p className={`text-sm font-medium transition-colors ${task.status === "completed"
                               ? "text-slate-400 line-through"
                               : "text-slate-700 dark:text-slate-200"
@@ -419,7 +399,7 @@ function PhotoUploadModal({
         </div>
 
         <p className="text-sm text-slate-500 mb-4">
-          Menyertakan foto bersifat opsional. Foto akan membuktikan bahwa <strong>{task.task_name}</strong> telah selesai dengan baik.
+          Foto bukti <strong>wajib diunggah</strong> untuk menyelesaikan tugas <span className="font-semibold text-slate-800 dark:text-slate-200">{task.task_name}</span>.
         </p>
 
         {task.photo_url ? (

@@ -319,7 +319,7 @@ export async function getDailyCleaningTasks(date: string): Promise<any[]> {
 export async function bulkCreateDailyCleaningTasks(tasks: {
   store_id: string;
   date: string;
-  shift: string;
+  shift?: string;
   task_name: string;
   assigned_to: string;
 }[]): Promise<{ error: string | null }> {
