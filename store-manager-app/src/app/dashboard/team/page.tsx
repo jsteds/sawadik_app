@@ -436,10 +436,32 @@ export default function TeamPage() {
     return matchSearch && matchStatus;
   });
 
-  // Sort: manager first, then by join_date
+  const getPositionRank = (position: string | null) => {
+    if (!position) return 99;
+    const p = position.toLowerCase();
+    if (p === "store manager") return 1;
+    if (p === "asst. store manager" || p === "assistant store manager") return 2;
+    if (p === "chatime staff") return 3;
+    if (p === "partimer") return 4;
+    
+    // Fallback if they use different strings but similar meaning
+    if (p.includes("manager") && !p.includes("asst")) return 1;
+    if (p.includes("asst") || p.includes("supervisor")) return 2;
+    if (p.includes("staff")) return 3;
+    if (p.includes("partime")) return 4;
+    
+    return 5;
+  };
+
+  // Sort: by hierarchy, then by join_date
   const sorted = [...filtered].sort((a, b) => {
-    if (a.role === "manager" && b.role !== "manager") return -1;
-    if (b.role === "manager" && a.role !== "manager") return 1;
+    const rankA = getPositionRank(a.position);
+    const rankB = getPositionRank(b.position);
+    
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    
     return new Date(a.join_date ?? "").getTime() - new Date(b.join_date ?? "").getTime();
   });
 
