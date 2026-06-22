@@ -301,3 +301,75 @@ ALTER TABLE public.general_cleaning
 ALTER TABLE public.documents
   ADD COLUMN IF NOT EXISTS file_path TEXT,
   ADD COLUMN IF NOT EXISTS file_size BIGINT;
+
+-- ─── UPDATE: Tambahkan kolom untuk Schedule Reviewer ke tabel `profiles` ─────
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS contract_end_date DATE,
+  ADD COLUMN IF NOT EXISTS incharge_start_date DATE;
+
+-- 7. SHIFT CODES TABLE
+CREATE TABLE IF NOT EXISTS public.shift_codes (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    group_name TEXT,
+    time_in TIME,
+    time_out TIME,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.shift_codes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "shift_codes_select_all" ON public.shift_codes;
+CREATE POLICY "shift_codes_select_all"
+  ON public.shift_codes FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "shift_codes_all_manager" ON public.shift_codes;
+CREATE POLICY "shift_codes_all_manager"
+  ON public.shift_codes FOR ALL
+  USING (public.get_auth_role() IN ('admin', 'manager'));
+
+-- 8. SCHEDULES TABLE
+CREATE TABLE IF NOT EXISTS public.schedules (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    store_id UUID REFERENCES public.stores(id) ON DELETE CASCADE,
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    shift_code_id UUID REFERENCES public.shift_codes(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(profile_id, date)
+);
+
+ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "schedules_select_visibility" ON public.schedules;
+CREATE POLICY "schedules_select_visibility"
+  ON public.schedules FOR SELECT
+  USING (
+    store_id = public.get_auth_store_id()
+    OR store_id IN (SELECT id FROM public.stores WHERE team_visibility = true)
+  );
+
+DROP POLICY IF EXISTS "schedules_insert_manager" ON public.schedules;
+CREATE POLICY "schedules_insert_manager"
+  ON public.schedules FOR INSERT
+  WITH CHECK (
+    store_id = public.get_auth_store_id()
+    AND public.get_auth_role() IN ('admin', 'manager')
+  );
+
+DROP POLICY IF EXISTS "schedules_update_manager" ON public.schedules;
+CREATE POLICY "schedules_update_manager"
+  ON public.schedules FOR UPDATE
+  USING (
+    store_id = public.get_auth_store_id()
+    AND public.get_auth_role() IN ('admin', 'manager')
+  );
+
+DROP POLICY IF EXISTS "schedules_delete_manager" ON public.schedules;
+CREATE POLICY "schedules_delete_manager"
+  ON public.schedules FOR DELETE
+  USING (
+    store_id = public.get_auth_store_id()
+    AND public.get_auth_role() IN ('admin', 'manager')
+  );

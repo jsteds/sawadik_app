@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Store,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -27,6 +28,7 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (va
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Team", href: "/dashboard/team", icon: Users },
+    { name: "Jadwal", href: "/dashboard/schedule", icon: CalendarDays },
     { name: "Dokumen", href: "/dashboard/documents", icon: FileText },
     { name: "Daily Cleaning", href: "/dashboard/daily-cleaning", icon: CheckSquare },
     { name: "General Cleaning", href: "/dashboard/cleaning", icon: Sparkles },
@@ -155,6 +157,7 @@ function Header({ setIsOpen }: { setIsOpen: (val: boolean) => void }) {
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "My Team", href: "/dashboard/team" },
+    { name: "Jadwal", href: "/dashboard/schedule" },
     { name: "Dokumen", href: "/dashboard/documents" },
     { name: "Daily Cleaning", href: "/dashboard/daily-cleaning" },
     { name: "General Cleaning", href: "/dashboard/cleaning" },

@@ -145,3 +145,26 @@ export const DOCUMENT_CATEGORIES = [
 ] as const;
 
 export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]["value"];
+
+// ─── Schedule Reviewer ──────────────────────────────────────────────────────────
+
+export interface ShiftCode {
+  id: string;
+  code: string;
+  group_name: string | null;
+  time_in: string | null;
+  time_out: string | null;
+  created_at: string;
+}
+
+export interface Schedule {
+  id: string;
+  store_id: string;
+  profile_id: string;
+  date: string;
+  shift_code_id: string | null;
+  created_at: string;
+  // joined fields
+  shift_code?: ShiftCode | null;
+  profile?: Profile | null;
+}
