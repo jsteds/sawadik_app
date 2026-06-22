@@ -301,19 +301,19 @@ export default function SchedulePage() {
               </h2>
               <div className="flex bg-white dark:bg-zinc-800 rounded-md border p-1">
                 <button
-                  onClick={() => setActiveTab("mingguan")}
+                  onClick={() => setViewMode("weekly")}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded",
-                    activeTab === "mingguan" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "text-gray-500 hover:text-gray-700"
+                    viewMode === "weekly" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "text-gray-500 hover:text-gray-700"
                   )}
                 >
                   Mingguan
                 </button>
                 <button
-                  onClick={() => setActiveTab("bulanan")}
+                  onClick={() => setViewMode("monthly")}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded",
-                    activeTab === "bulanan" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "text-gray-500 hover:text-gray-700"
+                    viewMode === "monthly" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "text-gray-500 hover:text-gray-700"
                   )}
                 >
                   Bulanan
@@ -326,12 +326,12 @@ export default function SchedulePage() {
                 <thead className="text-xs text-gray-500 bg-gray-50/50 dark:bg-zinc-900/50 border-b uppercase">
                   <tr>
                     <th className="px-4 py-3 font-medium">Nama</th>
-                    {activeTab === "mingguan" && (
+                    {viewMode === "weekly" && (
                       <th className="px-4 py-3 font-medium">Posisi</th>
                     )}
-                    {(activeTab === "mingguan" ? weekDates : monthDates).map((d) => (
+                    {(viewMode === "weekly" ? weekDates : monthDates).map((d) => (
                       <th key={d.toISOString()} className="px-2 py-3 font-medium text-center min-w-[40px]">
-                        {activeTab === "mingguan" ? (
+                        {viewMode === "weekly" ? (
                           <>
                             <div>{d.toLocaleDateString("id-ID", { weekday: "short" })}</div>
                             <div className="text-base text-gray-900 dark:text-gray-100 mt-1">{d.getDate()}</div>
@@ -348,7 +348,7 @@ export default function SchedulePage() {
                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          {activeTab === "mingguan" && (
+                          {viewMode === "weekly" && (
                             <div 
                               className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0"
                               style={{ backgroundColor: stringToColor(p.full_name || p.email) }}
@@ -358,14 +358,14 @@ export default function SchedulePage() {
                           )}
                           <div>
                             <p className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{p.full_name}</p>
-                            {activeTab === "bulanan" && <p className="text-xs text-gray-500">{p.position}</p>}
+                            {viewMode === "monthly" && <p className="text-xs text-gray-500">{p.position}</p>}
                           </div>
                         </div>
                       </td>
-                      {activeTab === "mingguan" && (
+                      {viewMode === "weekly" && (
                         <td className="px-4 py-3 text-gray-500 text-xs">{p.position}</td>
                       )}
-                      {(activeTab === "mingguan" ? weekDates : monthDates).map((d) => {
+                      {(viewMode === "weekly" ? weekDates : monthDates).map((d) => {
                         const dateStr = toInputDate(d);
                         const sched = schedules.find(s => s.profile_id === p.id && s.date === dateStr);
                         const codeObj = shiftCodes.find(c => c.id === sched?.shift_code_id);
