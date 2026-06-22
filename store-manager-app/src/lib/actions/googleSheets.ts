@@ -29,8 +29,8 @@ async function fetchSheetData(sheetId: string, range: string): Promise<string[][
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${API_KEY}`;
   
   try {
-    // Menambahkan revalidate (cache 1 jam) agar tidak terkena limit API dari Google
-    const response = await fetch(url, { next: { revalidate: 3600 } });
+    // Menggunakan cache: 'no-store' agar data selalu fresh dan tidak menyimpan error 403 sebelumnya
+    const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`Gagal fetch Google Sheets: ${response.statusText}`);
     }
