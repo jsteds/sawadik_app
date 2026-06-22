@@ -67,102 +67,37 @@ async function generatePDFReport(
   const pendingCount = tasks.length - completedCount;
   const allDone = pendingCount === 0;
 
-  // ─── Cover Page ─────────────────────────────────────────────────────────────
-  
-  // Background
-  doc.setFillColor(245, 246, 248);
-  doc.rect(0, 0, pageWidth, pageHeight, "F");
-
-  // Top-left yellow circle
-  doc.setFillColor(255, 204, 0); 
-  doc.circle(0, 0, 45, "F");
-
-  // Top-left blue dots grid
-  doc.setFillColor(30, 64, 175);
-  for (let i = 0; i < 7; i++) {
-    for (let j = 0; j < 7; j++) {
-      if (i + j > 2) { // Skip top-left corner a bit to blend
-        doc.circle(12 + i * 5, 12 + j * 5, 0.7, "F");
-      }
-    }
-  }
-
-  // Bottom blue shape
-  doc.setFillColor(30, 64, 175);
-  doc.rect(0, pageHeight - 25, pageWidth, 25, "F");
-  
-  // Bottom-right yellow concentric shapes
-  doc.setFillColor(255, 204, 0);
-  doc.circle(pageWidth, pageHeight, 35, "F");
-  doc.setFillColor(30, 64, 175);
-  doc.circle(pageWidth, pageHeight, 25, "F");
-  doc.setFillColor(255, 204, 0);
-  doc.circle(pageWidth, pageHeight, 15, "F");
-
-  // Bottom-left blue squiggles (approximated with multiple lines)
-  doc.setDrawColor(30, 64, 175);
-  doc.setLineWidth(1.5);
-  for(let i=0; i<3; i++) {
-    doc.line(10, pageHeight - 50 + (i*5), 30, pageHeight - 60 + (i*5));
-    doc.line(30, pageHeight - 60 + (i*5), 50, pageHeight - 45 + (i*5));
-    doc.line(50, pageHeight - 45 + (i*5), 70, pageHeight - 55 + (i*5));
-  }
-
-  // Logo Placeholder (Top-Right)
-  doc.setFillColor(255, 255, 255);
-  doc.circle(pageWidth - 42, 21, 6, "F");
-  doc.setDrawColor(30, 64, 175);
-  doc.setLineWidth(1.5);
-  doc.circle(pageWidth - 42, 21, 5, "S");
-  doc.setFillColor(255, 204, 0); // Inner yellow
-  doc.circle(pageWidth - 42, 21, 3.5, "F");
-  
-  doc.setTextColor(30, 64, 175);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("F&B", pageWidth - 14, 20, { align: "right" });
-  doc.setFontSize(7);
-  doc.text("INDONESIA", pageWidth - 14, 25, { align: "right" });
-
-  // Center Content
-  doc.setTextColor(60, 60, 60);
-  doc.setFontSize(28);
-  doc.text("GENERAL CLEANING", pageWidth / 2, pageHeight / 2 - 15, { align: "center" });
-  doc.text("REPORT", pageWidth / 2, pageHeight / 2 - 1, { align: "center" });
-
-  doc.setFontSize(12);
-  doc.setTextColor(80, 80, 80);
-  doc.text(storeName.toUpperCase(), pageWidth / 2, pageHeight / 2 + 18, { align: "center" });
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`KODE TOKO: ${storeCode || "-"}`, pageWidth / 2, pageHeight / 2 + 25, { align: "center" });
-  doc.text(`TANGGAL: ${reportDate.toUpperCase()}`, pageWidth / 2, pageHeight / 2 + 31, { align: "center" });
-
-  if (!allDone) {
-    doc.setTextColor(220, 38, 38);
-    doc.setFont("helvetica", "bold");
-    doc.text("⚠ DRAFT — Belum semua tugas selesai", pageWidth / 2, pageHeight / 2 + 45, { align: "center" });
-  }
-
-  // ─── End Cover Page ─────────────────────────────────────────────────────────
-  doc.addPage();
-
-  // ── Page 2 Header (Simplified) ──
+  // ── Header ──
   doc.setFillColor(30, 64, 175); // blue-800
-  doc.rect(0, 0, pageWidth, 20, "F");
+  doc.rect(0, 0, pageWidth, 28, "F");
+
+  const fbiLogoBase64 = await fetchImageAsBase64("/fbi_logo.png");
+  if (fbiLogoBase64) {
+    doc.addImage(fbiLogoBase64, "PNG", pageWidth - margin - 20, 4, 20, 20);
+  }
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("General Cleaning Detail", margin, 13);
-  
+  doc.text("General Cleaning Report", margin, 12);
+
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`${storeName}${storeCode ? " (" + storeCode + ")" : ""} | ${reportDate}`, pageWidth - margin, 13, { align: "right" });
+  doc.text(`${storeName}${storeCode ? " (" + storeCode + ")" : ""}`, margin, 19);
+  doc.text(`Tanggal GC: ${reportDate}`, margin, 24);
+
+  if (!allDone) {
+    doc.setFillColor(251, 191, 36); // amber
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    const draftLabel = "⚠ DRAFT — Belum semua tugas selesai";
+    doc.text(draftLabel, pageWidth - margin - 25, 14, { align: "right" });
+    doc.setTextColor(255, 255, 255);
+  }
 
   // ── Summary Cards ──
-  let y = 28;
+  let y = 35;
   const cardW = (pageWidth - margin * 2 - 6) / 4;
 
   const summaryData = [
@@ -370,19 +305,57 @@ async function generatePDFReport(
   doc.text("Store Manager", margin, sigY + 10);
   doc.text(`Digenerate pada: ${new Date().toLocaleString("id-ID")}`, margin, sigY + 16);
 
-  // ── Page numbers ──
+  // ── Footer & Page numbers ──
   const totalPages = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
+    
+    // Custom Footer Background
+    const fHeight = 20;
+    const startY = pageHeight - fHeight;
+    doc.setFillColor(245, 246, 248);
+    doc.rect(0, startY, pageWidth, fHeight, "F");
+
+    // Left: Blue Zigzag lines
+    doc.setDrawColor(0, 0, 204);
+    doc.setLineWidth(1);
+    const zx = 5, zy = startY + 2;
+    doc.line(zx, zy+10, zx+8, zy+2);
+    doc.line(zx+8, zy+2, zx+2, zy+12);
+    doc.line(zx+2, zy+12, zx+10, zy+4);
+    doc.line(zx+10, zy+4, zx+4, zy+14);
+
+    // Left: Yellow dots
+    doc.setFillColor(255, 204, 0);
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 3; r++) {
+        doc.circle(25 + c * 4, startY + 6 + r * 4, 0.8, "F");
+      }
+    }
+
+    // Right: Blue shape
+    doc.setFillColor(0, 0, 204);
+    doc.circle(80, pageHeight, 20, "F");
+    doc.rect(80, startY, pageWidth - 80, 20, "F");
+
+    // Far-Right: Yellow semi-circle with white dots
+    doc.setFillColor(255, 204, 0);
+    doc.circle(pageWidth, pageHeight, 18, "F");
+    doc.setFillColor(0, 0, 204);
+    doc.circle(pageWidth, pageHeight, 10, "F");
+    doc.setFillColor(255, 255, 255);
+    for (let c = 0; c < 3; c++) {
+      for (let r = 0; r < 3; r++) {
+        doc.circle(pageWidth - 8 + c * 3, pageHeight - 8 + r * 3, 0.4, "F");
+      }
+    }
+
+    // Text
     doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Halaman ${p} dari ${totalPages}`, pageWidth - margin, pageHeight - 5, { align: "right" });
     doc.setTextColor(148, 163, 184);
-    doc.text(
-      `Halaman ${p} dari ${totalPages}`,
-      pageWidth - margin,
-      pageHeight - 5,
-      { align: "right" }
-    );
-    doc.text("Auto generated by sawadik-app", margin, pageHeight - 5);
+    doc.text("Auto generated by sawadik-app", 45, pageHeight - 5);
   }
 
   const fileName = `GC_Report_${storeName.replace(/\s+/g, "_")}_${reportDate.replace(/\//g, "-")}.pdf`;
