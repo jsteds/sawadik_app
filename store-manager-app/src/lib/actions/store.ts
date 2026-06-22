@@ -1,8 +1,10 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { unstable_noStore as noStore } from "next/cache";
 
 export async function getAllStores() {
+  noStore();
   const { data, error } = await supabase
     .from("stores")
     .select("id, name, code, location")
