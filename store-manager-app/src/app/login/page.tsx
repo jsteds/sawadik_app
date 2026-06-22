@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [nik, setNik] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -51,6 +52,7 @@ export default function LoginPage() {
         options: {
           data: {
             full_name: fullName,
+            nik: nik,
             // Secara default user baru bisa ditandai sebagai role tertentu (opsional)
             role: role
           }
@@ -131,17 +133,30 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {isRegistering && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nama Lengkap</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Nama Lengkap Anda"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Nama Lengkap</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Nama Lengkap Anda"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nik">NIK (No. Induk Karyawan)</Label>
+                    <Input
+                      id="nik"
+                      type="text"
+                      placeholder="Masukkan NIK Anda"
+                      value={nik}
+                      onChange={(e) => setNik(e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
               )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

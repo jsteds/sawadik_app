@@ -43,17 +43,11 @@ export type MemberFormData = {
   avatar_url?: string;
 };
 
-// Jabatan/posisi yang tersedia di toko
 export const POSITION_OPTIONS = [
   "Store Manager",
-  "Supervisor",
-  "Kasir Senior",
-  "Kasir",
-  "Staff Penjualan",
-  "Staff Gudang",
-  "Staff Cleaning",
-  "Security",
-  "Lainnya",
+  "Asst. Store Manager",
+  "Chatime Staff",
+  "Partimer",
 ] as const;
 
 export const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -115,7 +109,7 @@ export interface DailyCleaningTask {
   completed_at?: string;
   photo_url?: string;
   created_at: string;
-  
+
   // joined data
   assignee?: { full_name: string; avatar_url: string };
   completer?: { full_name: string; avatar_url: string };
