@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useAuth } from "@/lib/AuthContext";
 import { getMasterScheduleFromSheet } from "@/lib/actions/googleSheets";
+import { getAllStores } from "@/lib/actions/store";
 import { Profile, Schedule, ShiftCode } from "@/lib/types";
 import { CalendarDays, AlertTriangle, Users, Store, Loader2, Settings } from "lucide-react";
 import Link from "next/link";
@@ -40,6 +39,14 @@ function toInputDate(date: Date) {
 
 export default function SchedulePage() {
   const { profile } = useAuth();
+  
+  // Tab State
+  const [activeTab, setActiveTab] = useState<"my_team" | "area">("my_team");
+  
+  // Area Store Selection State
+  const [allStores, setAllStores] = useState<{ id: string; name: string; code: string; location: string }[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,38 +55,70 @@ export default function SchedulePage() {
   const [shiftCodes, setShiftCodes] = useState<ShiftCode[]>([]);
 
   const [targetDate, setTargetDate] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState<"mingguan" | "bulanan">("mingguan");
+  const [viewMode, setViewMode] = useState<"weekly" | "monthly">("monthly");
 
   const [contractWarningDays, setContractWarningDays] = useState(30);
 
+  // Fetch daftar seluruh toko untuk dropdown Area
   useEffect(() => {
-    if (!profile?.store_id) return;
-    fetchData();
-  }, [profile?.store_id, targetDate]);
-
-  async function fetchData() {
-    setLoading(true);
-    setError(null);
-    try {
-      if (!profile?.store_id) throw new Error("Store ID tidak ditemukan");
-
-      // Menentukan range tanggal (misalnya awal bulan sampai akhir bulan dari targetDate)
-      const year = targetDate.getFullYear();
-      const month = targetDate.getMonth();
-      const startDate = toInputDate(new Date(year, month, 1));
-      const endDate = toInputDate(new Date(year, month + 1, 0)); // Hari terakhir bulan ini
-
-      const schedData = await getMasterScheduleFromSheet(profile.store_id, profile.stores?.code, startDate, endDate);
-
-      setShiftCodes(schedData.shiftCodes);
-      setProfiles(schedData.profiles);
-      setSchedules(schedData.schedules);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    async function fetchStores() {
+      const stores = await getAllStores();
+      setAllStores(stores);
+      if (stores.length > 0 && !selectedStoreId) {
+        setSelectedStoreId(stores[0].id);
+      }
     }
-  }
+    if (activeTab === "area") {
+      fetchStores();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    async function loadData() {
+      // Tentukan toko mana yang sedang dilihat jadwalnya
+      let currentStoreId = profile?.store_id;
+      let currentStoreCode = profile?.stores?.code;
+
+      if (activeTab === "area") {
+        const selectedStore = allStores.find(s => s.id === selectedStoreId);
+        currentStoreId = selectedStore?.id;
+        currentStoreCode = selectedStore?.code;
+      }
+
+      if (!currentStoreId || !currentStoreCode) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const year = targetDate.getFullYear();
+        const month = targetDate.getMonth();
+        
+        const startDate = toInputDate(new Date(year, month, 1));
+        const endDate = toInputDate(new Date(year, month + 1, 0)); // Hari terakhir bulan ini
+
+        const schedData = await getMasterScheduleFromSheet(currentStoreId, currentStoreCode, startDate, endDate);
+
+        // Validasi jika API Key tidak dapat mengakses Sheet
+        if (schedData.profiles.length === 0 && schedData.schedules.length === 0) {
+          console.warn("Jadwal kosong. Pastikan API Key valid dan Google Sheet berstatus 'Anyone with the link can view'.");
+        }
+
+        setShiftCodes(schedData.shiftCodes);
+        setProfiles(schedData.profiles);
+        setSchedules(schedData.schedules);
+      } catch (err: any) {
+        console.error(err);
+        setError("Gagal memuat jadwal. Pastikan Google Sheet Anda diatur ke 'Anyone with the link can view' agar bisa diakses oleh API Key.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [targetDate, profile, activeTab, selectedStoreId, allStores]);
 
   // --- Derived State & Calculations ---
   const targetIso = toInputDate(targetDate);
@@ -135,23 +174,63 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Jadwal & Roster</h1>
-          <p className="text-sm text-gray-500 mt-1">Review jadwal kerja dan karyawan incharge</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Jadwal & Roster</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Review jadwal kerja dan karyawan incharge</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <input
-            type="date"
-            value={targetIso}
-            onChange={(e) => setTargetDate(new Date(e.target.value))}
-            className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto"
-          />
+        <div className="flex flex-col gap-2 w-full sm:w-auto">
+          {/* TABS */}
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab("my_team")}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "my_team" 
+                  ? "bg-white dark:bg-zinc-700 text-blue-600 shadow-sm" 
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              My Team
+            </button>
+            <button
+              onClick={() => setActiveTab("area")}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "area" 
+                  ? "bg-white dark:bg-zinc-700 text-blue-600 shadow-sm" 
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              Area
+            </button>
+          </div>
+          
+          <div className="flex gap-2 w-full sm:w-auto">
+            {activeTab === "area" && (
+              <select
+                value={selectedStoreId}
+                onChange={(e) => setSelectedStoreId(e.target.value)}
+                className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto bg-white"
+              >
+                {allStores.map(store => (
+                  <option key={store.id} value={store.id}>
+                    {store.name} ({store.code})
+                  </option>
+                ))}
+              </select>
+            )}
+            <input
+              type="date"
+              value={targetIso}
+              onChange={(e) => setTargetDate(new Date(e.target.value))}
+              className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto"
+            />
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 text-red-700 rounded-md border border-red-200">
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 p-4 rounded-lg flex items-start gap-3 mb-6">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <p>{error}</p>
         </div>
       )}
