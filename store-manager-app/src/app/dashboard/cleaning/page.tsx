@@ -48,7 +48,7 @@ import {
 async function generatePDFReport(
   tasks: any[],
   storeName: string,
-  storeLocation: string | null,
+  storeCode: string | null,
   managerName: string,
   reportDate: string
 ): Promise<{ fileName: string; blob: Blob }> {
@@ -67,32 +67,102 @@ async function generatePDFReport(
   const pendingCount = tasks.length - completedCount;
   const allDone = pendingCount === 0;
 
-  // ── Header ──
-  doc.setFillColor(30, 64, 175); // blue-800
-  doc.rect(0, 0, pageWidth, 28, "F");
+  // ─── Cover Page ─────────────────────────────────────────────────────────────
+  
+  // Background
+  doc.setFillColor(245, 246, 248);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("General Cleaning Report", margin, 12);
+  // Top-left yellow circle
+  doc.setFillColor(255, 204, 0); 
+  doc.circle(0, 0, 45, "F");
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${storeName}${storeLocation ? " — " + storeLocation : ""}`, margin, 19);
-  doc.text(`Tanggal GC: ${reportDate}`, margin, 24);
-
-  if (!allDone) {
-    doc.setFillColor(251, 191, 36); // amber
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    const draftLabel = "⚠ DRAFT — Belum semua tugas selesai";
-    doc.text(draftLabel, pageWidth - margin, 14, { align: "right" });
-    doc.setTextColor(255, 255, 255);
+  // Top-left blue dots grid
+  doc.setFillColor(30, 64, 175);
+  for (let i = 0; i < 7; i++) {
+    for (let j = 0; j < 7; j++) {
+      if (i + j > 2) { // Skip top-left corner a bit to blend
+        doc.circle(12 + i * 5, 12 + j * 5, 0.7, "F");
+      }
+    }
   }
 
+  // Bottom blue shape
+  doc.setFillColor(30, 64, 175);
+  doc.rect(0, pageHeight - 25, pageWidth, 25, "F");
+  
+  // Bottom-right yellow concentric shapes
+  doc.setFillColor(255, 204, 0);
+  doc.circle(pageWidth, pageHeight, 35, "F");
+  doc.setFillColor(30, 64, 175);
+  doc.circle(pageWidth, pageHeight, 25, "F");
+  doc.setFillColor(255, 204, 0);
+  doc.circle(pageWidth, pageHeight, 15, "F");
+
+  // Bottom-left blue squiggles (approximated with multiple lines)
+  doc.setDrawColor(30, 64, 175);
+  doc.setLineWidth(1.5);
+  for(let i=0; i<3; i++) {
+    doc.line(10, pageHeight - 50 + (i*5), 30, pageHeight - 60 + (i*5));
+    doc.line(30, pageHeight - 60 + (i*5), 50, pageHeight - 45 + (i*5));
+    doc.line(50, pageHeight - 45 + (i*5), 70, pageHeight - 55 + (i*5));
+  }
+
+  // Logo Placeholder (Top-Right)
+  doc.setFillColor(255, 255, 255);
+  doc.circle(pageWidth - 42, 21, 6, "F");
+  doc.setDrawColor(30, 64, 175);
+  doc.setLineWidth(1.5);
+  doc.circle(pageWidth - 42, 21, 5, "S");
+  doc.setFillColor(255, 204, 0); // Inner yellow
+  doc.circle(pageWidth - 42, 21, 3.5, "F");
+  
+  doc.setTextColor(30, 64, 175);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("F&B", pageWidth - 14, 20, { align: "right" });
+  doc.setFontSize(7);
+  doc.text("INDONESIA", pageWidth - 14, 25, { align: "right" });
+
+  // Center Content
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(28);
+  doc.text("GENERAL CLEANING", pageWidth / 2, pageHeight / 2 - 15, { align: "center" });
+  doc.text("REPORT", pageWidth / 2, pageHeight / 2 - 1, { align: "center" });
+
+  doc.setFontSize(12);
+  doc.setTextColor(80, 80, 80);
+  doc.text(storeName.toUpperCase(), pageWidth / 2, pageHeight / 2 + 18, { align: "center" });
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`KODE TOKO: ${storeCode || "-"}`, pageWidth / 2, pageHeight / 2 + 25, { align: "center" });
+  doc.text(`TANGGAL: ${reportDate.toUpperCase()}`, pageWidth / 2, pageHeight / 2 + 31, { align: "center" });
+
+  if (!allDone) {
+    doc.setTextColor(220, 38, 38);
+    doc.setFont("helvetica", "bold");
+    doc.text("⚠ DRAFT — Belum semua tugas selesai", pageWidth / 2, pageHeight / 2 + 45, { align: "center" });
+  }
+
+  // ─── End Cover Page ─────────────────────────────────────────────────────────
+  doc.addPage();
+
+  // ── Page 2 Header (Simplified) ──
+  doc.setFillColor(30, 64, 175); // blue-800
+  doc.rect(0, 0, pageWidth, 20, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("General Cleaning Detail", margin, 13);
+  
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${storeName}${storeCode ? " (" + storeCode + ")" : ""} | ${reportDate}`, pageWidth - margin, 13, { align: "right" });
+
   // ── Summary Cards ──
-  let y = 35;
+  let y = 28;
   const cardW = (pageWidth - margin * 2 - 6) / 4;
 
   const summaryData = [
@@ -749,7 +819,7 @@ export default function GeneralCleaningPage() {
       const { fileName, blob } = await generatePDFReport(
         tasks,
         profile.stores?.name ?? "Toko",
-        profile.stores?.location ?? null,
+        profile.stores?.code ?? null,
         profile.full_name ?? "Manager",
         reportDate
       );

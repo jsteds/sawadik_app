@@ -4,7 +4,7 @@
 export interface Store {
   id: string;
   name: string;
-  location: string | null;
+  code: string | null;
   custom_positions: string[] | null;
   team_visibility: boolean;
   cleaning_visibility: boolean;

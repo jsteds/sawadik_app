@@ -80,9 +80,9 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (va
                 <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 truncate">
                   {profile.stores.name}
                 </p>
-                {profile.stores.location && (
+                {profile.stores.code && (
                   <p className="text-[10px] text-blue-500/70 truncate">
-                    {profile.stores.location}
+                    Kode: {profile.stores.code}
                   </p>
                 )}
               </div>

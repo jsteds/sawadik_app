@@ -443,13 +443,13 @@ export default function TeamPage() {
     if (p === "asst. store manager" || p === "assistant store manager") return 2;
     if (p === "chatime staff") return 3;
     if (p === "partimer") return 4;
-    
+
     // Fallback if they use different strings but similar meaning
     if (p.includes("manager") && !p.includes("asst")) return 1;
     if (p.includes("asst") || p.includes("supervisor")) return 2;
     if (p.includes("staff")) return 3;
     if (p.includes("partime")) return 4;
-    
+
     return 5;
   };
 
@@ -457,11 +457,11 @@ export default function TeamPage() {
   const sorted = [...filtered].sort((a, b) => {
     const rankA = getPositionRank(a.position);
     const rankB = getPositionRank(b.position);
-    
+
     if (rankA !== rankB) {
       return rankA - rankB;
     }
-    
+
     return new Date(a.join_date ?? "").getTime() - new Date(b.join_date ?? "").getTime();
   });
 
@@ -571,13 +571,13 @@ export default function TeamPage() {
             {profile?.stores?.name ?? "Meet Our Team"}
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-            Tim{" "}
+            {" "}
             <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
               {profile?.stores?.name ?? "Kami"}
             </span>
           </h1>
           <p className="text-slate-400 max-w-lg mx-auto text-sm">
-            Para profesional terbaik yang menggerakkan operasional toko setiap harinya.
+            Great Team, Great Impact.
           </p>
         </div>
       </div>

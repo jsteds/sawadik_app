@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.stores (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     name TEXT NOT NULL,
-    location TEXT,
+    code TEXT,
     custom_positions JSONB DEFAULT '[]'::jsonb,
     team_visibility BOOLEAN DEFAULT false,
     cleaning_visibility BOOLEAN DEFAULT false,

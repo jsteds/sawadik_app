@@ -44,7 +44,7 @@ export default function Onboarding() {
 
   // Fetch all stores regardless of role
   useEffect(() => {
-    supabase.from("stores").select("id, name, location").order("name").then(({ data }) => {
+    supabase.from("stores").select("id, name, code").order("name").then(({ data }) => {
       if (data) setAvailableStores(data);
     });
   }, []);
@@ -62,7 +62,7 @@ export default function Onboarding() {
 
   const filteredStores = availableStores.filter(store => 
     store.name.toLowerCase().includes(searchStore.toLowerCase()) || 
-    (store.location && store.location.toLowerCase().includes(searchStore.toLowerCase()))
+    (store.code && store.code.toLowerCase().includes(searchStore.toLowerCase()))
   );
 
   const selectedStore = availableStores.find(s => s.id === selectedStoreId);
@@ -146,7 +146,7 @@ export default function Onboarding() {
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
                   <Input
-                    placeholder={selectedStore ? `${selectedStore.name} ${selectedStore.location ? `- ${selectedStore.location}` : ''}` : "Ketik nama toko untuk mencari..."}
+                    placeholder={selectedStore ? `${selectedStore.name} ${selectedStore.code ? `(${selectedStore.code})` : ''}` : "Ketik nama toko untuk mencari..."}
                     className="pl-9 bg-zinc-950 border-zinc-800 text-white placeholder-zinc-500 focus-visible:ring-blue-500"
                     value={searchStore}
                     onChange={(e) => {
@@ -179,7 +179,7 @@ export default function Onboarding() {
                             }}
                           >
                             <span className="truncate pr-4">
-                              {store.name} <span className="text-zinc-500">{store.location ? `- ${store.location}` : ""}</span>
+                              {store.name} <span className="text-zinc-500">{store.code ? `(${store.code})` : ""}</span>
                             </span>
                             {selectedStoreId === store.id && <Check className="w-4 h-4 text-blue-500 flex-shrink-0" />}
                           </li>
