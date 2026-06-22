@@ -23,6 +23,8 @@ export interface Profile {
   store_id: string | null;
   join_date: string | null;
   avatar_url: string | null;
+  contract_end_date: string | null;
+  incharge_start_date: string | null;
   created_at: string;
   // joined from stores table (optional)
   stores?: Store | null;

@@ -1,13 +1,12 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
 /**
  * Mendapatkan semua Shift Codes yang tersedia (global)
  */
 export async function getShiftCodes() {
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shift_codes")
     .select("*")
@@ -25,7 +24,6 @@ export async function getShiftCodes() {
  * Menyimpan atau memperbarui daftar shift codes
  */
 export async function upsertShiftCode(shiftData: { code: string; time_in?: string; time_out?: string; group_name?: string }) {
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shift_codes")
     .upsert({
@@ -50,7 +48,6 @@ export async function upsertShiftCode(shiftData: { code: string; time_in?: strin
  * Menghapus kode shift
  */
 export async function deleteShiftCode(id: string) {
-  const supabase = await createClient();
   const { error } = await supabase.from("shift_codes").delete().eq("id", id);
   if (error) throw new Error("Gagal menghapus kode shift");
   revalidatePath("/dashboard/schedule/manager");
@@ -63,8 +60,6 @@ export async function deleteShiftCode(id: string) {
  * @param endDate Tanggal akhir (YYYY-MM-DD)
  */
 export async function getSchedules(storeId: string, startDate: string, endDate: string) {
-  const supabase = await createClient();
-  
   // 1. Ambil data profiles di toko tersebut
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
@@ -97,8 +92,6 @@ export async function upsertSchedules(
   storeId: string,
   schedulesToUpsert: { profile_id: string; date: string; shift_code_id: string | null }[]
 ) {
-  const supabase = await createClient();
-  
   // Pisahkan mana yang insert/update (punya shift_code_id) dan mana yang delete (shift_code_id === null)
   const toUpsert = schedulesToUpsert
     .filter(s => s.shift_code_id !== null)
