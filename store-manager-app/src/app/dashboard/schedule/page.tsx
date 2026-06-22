@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { getSchedules, getShiftCodes } from "@/lib/actions/schedule";
+import { getMasterScheduleFromSheet } from "@/lib/actions/googleSheets";
 import { Profile, Schedule, ShiftCode } from "@/lib/types";
 import { CalendarDays, AlertTriangle, Users, Store, Loader2, Settings } from "lucide-react";
 import Link from "next/link";
@@ -69,12 +69,9 @@ export default function SchedulePage() {
       const startDate = toInputDate(new Date(year, month, 1));
       const endDate = toInputDate(new Date(year, month + 1, 0)); // Hari terakhir bulan ini
 
-      const [shiftCodesData, schedData] = await Promise.all([
-        getShiftCodes(),
-        getSchedules(profile.store_id, startDate, endDate),
-      ]);
+      const schedData = await getMasterScheduleFromSheet(profile.store_id, profile.stores?.code, startDate, endDate);
 
-      setShiftCodes(shiftCodesData);
+      setShiftCodes(schedData.shiftCodes);
       setProfiles(schedData.profiles);
       setSchedules(schedData.schedules);
     } catch (err: any) {
@@ -150,15 +147,6 @@ export default function SchedulePage() {
             onChange={(e) => setTargetDate(new Date(e.target.value))}
             className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto"
           />
-          {["admin", "manager"].includes(profile?.role || "") && (
-            <Link
-              href="/dashboard/schedule/manager"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm font-medium transition-colors"
-            >
-              <Settings className="w-4 h-4" />
-              Kelola
-            </Link>
-          )}
         </div>
       </div>
 
