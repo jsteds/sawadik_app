@@ -53,7 +53,7 @@ DROP POLICY IF EXISTS "stores_select_associated" ON public.stores;
 DROP POLICY IF EXISTS "stores_insert_authenticated" ON public.stores;
 DROP POLICY IF EXISTS "stores_update_manager" ON public.stores;
 
-DROP POLICY IF EXISTS "profiles_select_same_store" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_select_visibility" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_self" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_manager" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_update_manager" ON public.profiles;
