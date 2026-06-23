@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, User, IdCard, Sparkles, ArrowRight, Loader2, Search, Check } from "lucide-react";
-import { getAllStores } from "@/lib/actions/store";
+import { ensureStoreExists } from "@/lib/actions/store";
+import { getUniqueStoresFromSheet } from "@/lib/actions/googleSheets";
 export default function Onboarding() {
   const { session, refreshProfile } = useAuth();
   
@@ -42,9 +43,9 @@ export default function Onboarding() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Fetch all stores regardless of role
+  // Fetch unique stores from Google Sheets
   useEffect(() => {
-    getAllStores().then((data) => {
+    getUniqueStoresFromSheet().then((data) => {
       if (data) setAvailableStores(data);
     });
   }, []);
@@ -78,15 +79,18 @@ export default function Onboarding() {
     setError("");
 
     try {
-      if (!selectedStoreId) {
+      if (!selectedStoreId || !selectedStore) {
         throw new Error("Silakan cari dan pilih toko tempat Anda bekerja dari daftar.");
       }
+
+      // Pastikan store sudah ada di database Supabase dan dapatkan ID-nya
+      const storeId = await ensureStoreExists(selectedStore.name, selectedStore.code);
 
       // Hubungkan profile user dengan store_id dan update informasi
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          store_id: selectedStoreId,
+          store_id: storeId,
           full_name: fullName.trim(),
           nik: nik.trim(),
           role: isStaff ? "staff" : "manager",

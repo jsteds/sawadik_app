@@ -43,6 +43,28 @@ async function fetchSheetData(sheetId: string, range: string): Promise<string[][
 }
 
 /**
+ * Mengambil daftar toko unik dari data karyawan di Google Sheets
+ */
+export async function getUniqueStoresFromSheet() {
+  const empRows = await fetchSheetData(EMPLOYEE_SHEET_ID, SHEET_NAME_EMPLOYEES);
+  const storeMap = new Map<string, { id: string; name: string; code: string }>();
+  
+  empRows.forEach((row) => {
+    const storeName = row[0]?.trim();
+    const storeCode = row[1]?.trim();
+    
+    if (storeName && storeCode && storeName.toLowerCase() !== "store") {
+      if (!storeMap.has(storeCode)) {
+        // Gunakan storeCode sebagai fallback ID sementara untuk Dropdown
+        storeMap.set(storeCode, { id: storeCode, name: storeName, code: storeCode });
+      }
+    }
+  });
+
+  return Array.from(storeMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
  * Mengambil dan memetakan master data jadwal dari Google Sheet
  * @param storeId - ID Toko (jika roster di sheet dicampur untuk semua toko)
  * @param startDate - Format "YYYY-MM-DD"

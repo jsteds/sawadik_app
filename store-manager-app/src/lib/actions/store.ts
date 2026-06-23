@@ -17,3 +17,27 @@ export async function getAllStores() {
 
   return data;
 }
+
+export async function ensureStoreExists(name: string, code: string) {
+  // Check if store exists by code
+  let { data: store, error } = await supabase
+    .from("stores")
+    .select("id")
+    .eq("code", code)
+    .maybeSingle();
+
+  if (store) return store.id;
+
+  // Insert if not exists
+  const { data: newStore, error: insertError } = await supabase
+    .from("stores")
+    .insert({ name, code })
+    .select("id")
+    .single();
+    
+  if (insertError) {
+    console.error("Gagal menambahkan store baru:", insertError.message);
+    throw new Error(insertError.message);
+  }
+  return newStore.id;
+}
