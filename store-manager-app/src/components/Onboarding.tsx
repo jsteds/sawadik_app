@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, User, IdCard, Sparkles, ArrowRight, Loader2, Search, Check } from "lucide-react";
-import { ensureStoreExists } from "@/lib/actions/store";
+
 import { getUniqueStoresFromSheet } from "@/lib/actions/googleSheets";
 export default function Onboarding() {
   const { session, refreshProfile } = useAuth();
@@ -84,7 +84,30 @@ export default function Onboarding() {
       }
 
       // Pastikan store sudah ada di database Supabase dan dapatkan ID-nya
-      const storeId = await ensureStoreExists(selectedStore.name, selectedStore.code);
+      let storeId = "";
+      
+      // 1. Cek apakah store sudah ada berdasarkan code
+      const { data: existingStore, error: fetchError } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("code", selectedStore.code)
+        .maybeSingle();
+
+      if (existingStore) {
+        storeId = existingStore.id;
+      } else {
+        // 2. Jika belum ada, insert store baru
+        const { data: newStore, error: insertError } = await supabase
+          .from("stores")
+          .insert({ name: selectedStore.name, code: selectedStore.code })
+          .select("id")
+          .single();
+          
+        if (insertError) {
+          throw new Error(`Gagal menambahkan store baru: ${insertError.message}`);
+        }
+        storeId = newStore.id;
+      }
 
       // Hubungkan profile user dengan store_id dan update informasi
       const { error: profileError } = await supabase
