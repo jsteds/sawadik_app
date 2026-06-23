@@ -94,8 +94,8 @@ export async function getMasterScheduleFromSheet(storeId: string, storeCode: str
       id: profileId,
       auth_user_id: null,
       email: `${row[3]}@dummy.com`.replace(/\s/g, '').toLowerCase(),
-      full_name: row[3] || "Tanpa Nama", // Nama Karyawan (Kolom D/3)
-      nik: row[4] || null,               // NIK (Kolom E/4)
+      full_name: (row[3] || "Tanpa Nama").trim(), // Nama Karyawan (Kolom D/3)
+      nik: row[4]?.trim() || null,               // NIK (Kolom E/4)
       role: "staff",
       position: row[5] || "Staff",       // Jabatan (Kolom F/5)
       status: "aktif",
@@ -118,11 +118,15 @@ export async function getMasterScheduleFromSheet(storeId: string, storeCode: str
    * 0=NIK, 1=NAMA LENGKAP, 2=JOB TITTLE, 3=Tgl 1, 4=Tgl 2, dst.
    */
   schedRows.forEach((row, rowIndex) => {
-    const employeeName = row[1]; // Kolom B/1 berisi nama lengkap
+    const employeeNik = row[0]?.trim(); // Kolom A/0 berisi NIK
+    const employeeName = row[1]?.trim(); // Kolom B/1 berisi nama lengkap
     if (!employeeName) return;
 
-    // Cari profil dengan nama yang cocok (case-insensitive)
-    const matchedProfile = profiles.find(p => p.full_name?.toLowerCase() === employeeName.toLowerCase());
+    // Cari profil dengan nama yang cocok (case-insensitive) atau NIK
+    const matchedProfile = profiles.find(p => 
+      (p.nik && employeeNik && p.nik === employeeNik) ||
+      (p.full_name?.toLowerCase() === employeeName.toLowerCase())
+    );
     
     if (matchedProfile) {
       const start = new Date(startDate);
