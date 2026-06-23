@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, User, IdCard, Sparkles, ArrowRight, Loader2, Search, Check } from "lucide-react";
-
+import { getAllStores } from "@/lib/actions/store";
 export default function Onboarding() {
   const { session, refreshProfile } = useAuth();
   
@@ -44,7 +44,7 @@ export default function Onboarding() {
 
   // Fetch all stores regardless of role
   useEffect(() => {
-    supabase.from("stores").select("id, name, code").order("name").then(({ data }) => {
+    getAllStores().then((data) => {
       if (data) setAvailableStores(data);
     });
   }, []);

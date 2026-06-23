@@ -7,7 +7,7 @@ export async function getAllStores() {
   noStore();
   const { data, error } = await supabase
     .from("stores")
-    .select("id, name, code, location")
+    .select("id, name, code")
     .order("name", { ascending: true });
 
   if (error) {

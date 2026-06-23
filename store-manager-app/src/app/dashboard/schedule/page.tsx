@@ -46,7 +46,7 @@ export default function SchedulePage() {
   const [activeTab, setActiveTab] = useState<"my_team" | "area">("my_team");
   
   // Area Store Selection State
-  const [allStores, setAllStores] = useState<{ id: string; name: string; code: string; location: string }[]>([]);
+  const [allStores, setAllStores] = useState<{ id: string; name: string; code: string }[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
