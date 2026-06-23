@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { unstable_noStore as noStore } from "next/cache";
+import { createClient } from "@supabase/supabase-js";
 
 export async function getAllStores() {
   noStore();
@@ -14,13 +15,17 @@ export async function getAllStores() {
     console.error("Gagal mengambil daftar store:", error.message);
     return [];
   }
-
   return data;
 }
 
 export async function ensureStoreExists(name: string, code: string) {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   // Check if store exists by code
-  let { data: store, error } = await supabase
+  let { data: store, error } = await supabaseAdmin
     .from("stores")
     .select("id")
     .eq("code", code)
@@ -29,7 +34,7 @@ export async function ensureStoreExists(name: string, code: string) {
   if (store) return store.id;
 
   // Insert if not exists
-  const { data: newStore, error: insertError } = await supabase
+  const { data: newStore, error: insertError } = await supabaseAdmin
     .from("stores")
     .insert({ name, code })
     .select("id")
