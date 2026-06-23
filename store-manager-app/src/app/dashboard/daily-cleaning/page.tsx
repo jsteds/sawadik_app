@@ -10,8 +10,10 @@ import {
   uncompleteDailyCleaningTask,
   deleteDailyCleaningTask,
   getTeamMembers,
+  uploadGCPdfToPublic,
 } from "@/lib/supabase";
 import type { DailyCleaningTask, Profile } from "@/lib/types";
+import { compressImage } from "@/lib/imageUtils";
 import { SHIFT_OPTIONS } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,8 +36,352 @@ import {
   X,
   User,
   ListTodo,
-  Clock
+  Clock,
+  FileText
 } from "lucide-react";
+
+// ─── Helpers untuk PDF ────────────────────────────────────────────────────────
+
+function drawPlaceholder(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  doc: any,
+  x: number,
+  y: number,
+  size: number,
+  label: string
+) {
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.3);
+  doc.rect(x, y, size, size, "FD");
+  doc.setFontSize(6);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`No ${label} Photo`, x + size / 2, y + size / 2, {
+    align: "center",
+  });
+}
+
+async function fetchImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ─── PDF Generator ────────────────────────────────────────────────────────────
+
+async function generateDailyCleaningPDFReport(
+  tasks: DailyCleaningTask[],
+  storeName: string,
+  storeCode: string | null,
+  managerName: string,
+  reportDate: string
+): Promise<{ fileName: string; blob: Blob }> {
+  // Dynamic import to avoid SSR issues
+  const { jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const pendingCount = tasks.length - completedCount;
+  const allDone = pendingCount === 0;
+
+  // ── Header ──
+  doc.setFillColor(255, 204, 0); 
+  doc.circle(0, 0, 25, "F");
+
+  doc.setFillColor(30, 64, 175);
+  for (let c = 0; c < 6; c++) {
+    for (let r = 0; r < 4; r++) {
+      if (c + r > 2) {
+        doc.circle(6 + c * 4, 6 + r * 4, 0.5, "F");
+      }
+    }
+  }
+
+  doc.setDrawColor(255, 204, 0);
+  doc.setLineWidth(1);
+  const sx = pageWidth - margin - 15;
+  const sy = 8;
+  doc.line(sx - 12, sy + 2, sx - 9, sy - 1);
+  doc.line(sx - 9, sy - 1, sx - 6, sy + 2);
+  doc.line(sx - 6, sy + 2, sx - 3, sy - 1);
+  doc.line(sx - 3, sy - 1, sx, sy + 2);
+
+  const fbiLogoBase64 = await fetchImageAsBase64("/fbi_logo.png");
+  if (fbiLogoBase64) {
+    doc.addImage(fbiLogoBase64, "PNG", pageWidth - margin - 35, 12, 35, 12);
+  }
+
+  doc.setTextColor(30, 64, 175);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Daily Cleaning Report", margin, 32);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(71, 85, 105);
+  doc.text(`${storeName}${storeCode ? " (" + storeCode + ")" : ""}`, margin, 38);
+  doc.text(`Tanggal Daily Cleaning: ${reportDate}`, margin, 43);
+
+  if (!allDone) {
+    doc.setFillColor(251, 191, 36);
+    doc.setTextColor(220, 38, 38);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    const draftLabel = "⚠ DRAFT — Belum semua tugas selesai";
+    doc.text(draftLabel, pageWidth - margin, 38, { align: "right" });
+  }
+
+  // ── Summary Cards ──
+  let y = 50;
+  const cardW = (pageWidth - margin * 2 - 6) / 4;
+
+  const summaryData = [
+    { label: "Total Tugas", value: String(tasks.length), color: [71, 85, 105] as [number, number, number] },
+    { label: "Selesai", value: String(completedCount), color: [16, 185, 129] as [number, number, number] },
+    { label: "Belum Selesai", value: String(pendingCount), color: pendingCount > 0 ? [239, 68, 68] as [number, number, number] : [107, 114, 128] as [number, number, number] },
+    { label: "Persentase", value: `${tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0}%`, color: [37, 99, 235] as [number, number, number] },
+  ];
+
+  summaryData.forEach((item, i) => {
+    const x = margin + i * (cardW + 2);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, y, cardW, 18, 2, 2, "F");
+    doc.setDrawColor(...item.color);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(x, y, cardW, 18, 2, 2, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...item.color);
+    doc.text(item.value, x + cardW / 2, y + 10, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(item.label, x + cardW / 2, y + 15, { align: "center" });
+  });
+
+  y += 25;
+
+  // ── Detail Table ──
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Detail Tugas Daily Cleaning", margin, y);
+  y += 4;
+
+  const tableRows: (string | object)[][] = [];
+
+  for (const task of tasks) {
+    const statusLabel = task.status === "completed" ? "✓ Selesai" : "Menunggu";
+    const completedAt = task.completed_at 
+      ? new Date(task.completed_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+      : "—";
+
+    const row: (string | object)[] = [
+      String(tasks.indexOf(task) + 1),
+      task.task_name,
+      task.assignee?.full_name || "Belum Diassign",
+      statusLabel,
+      completedAt,
+    ];
+    tableRows.push(row);
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Tugas Pembersihan", "PIC", "Status", "Waktu Selesai"]],
+    body: tableRows,
+    margin: { left: margin, right: margin },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.3,
+    },
+    headStyles: {
+      fillColor: [30, 64, 175],
+      textColor: 255,
+      fontStyle: "bold",
+      fontSize: 8,
+    },
+    columnStyles: {
+      0: { cellWidth: 8, halign: "center" },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 30 },
+      4: { cellWidth: 30 },
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    didParseCell: (data) => {
+      if (data.column.index === 3 && data.section === "body") {
+        const val = String(data.cell.raw);
+        if (val.includes("✓")) {
+          data.cell.styles.textColor = [16, 185, 129];
+          data.cell.styles.fontStyle = "bold";
+        } else {
+          data.cell.styles.textColor = [107, 114, 128];
+        }
+      }
+    },
+  });
+
+  // ── Photo Section ──
+  const tasksWithPhotos = tasks.filter((t) => t.photo_url);
+
+  if (tasksWithPhotos.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const finalY = (doc as any).lastAutoTable?.finalY ?? y + 20;
+    let photoY = finalY + 8;
+
+    if (photoY > pageHeight - 60) {
+      doc.addPage();
+      photoY = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Dokumentasi Foto", margin, photoY);
+    photoY += 5;
+
+    const cols = 3;
+    const imgSize = 45;
+    const imgGapX = 10;
+    const imgGapY = 15;
+    
+    for (let i = 0; i < tasksWithPhotos.length; i++) {
+      const task = tasksWithPhotos[i];
+      const col = i % cols;
+      
+      if (i > 0 && col === 0) {
+        photoY += imgSize + imgGapY;
+      }
+      
+      if (photoY > pageHeight - 65) {
+        doc.addPage();
+        photoY = margin;
+      }
+
+      const x = margin + col * (imgSize + imgGapX);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(30, 41, 59);
+      doc.text(task.task_name, x, photoY, { maxWidth: imgSize });
+      
+      let imgYOffset = 4;
+      if (task.task_name.length > 30) imgYOffset = 7;
+
+      if (task.photo_url) {
+        try {
+          const imgData = await fetchImageAsBase64(task.photo_url);
+          if (imgData) {
+            doc.addImage(imgData, "JPEG", x, photoY + imgYOffset, imgSize, imgSize);
+          } else {
+            drawPlaceholder(doc, x, photoY + imgYOffset, imgSize, "Bukti");
+          }
+        } catch {
+          drawPlaceholder(doc, x, photoY + imgYOffset, imgSize, "Bukti");
+        }
+      }
+
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text(task.assignee?.full_name || "—", x + imgSize / 2, photoY + imgYOffset + imgSize + 3, {
+        align: "center",
+      });
+    }
+  }
+
+  // ── Footer / Signature ──
+  const lastPageNum = doc.getNumberOfPages();
+  doc.setPage(lastPageNum);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const footerY = Math.max((doc as any).lastAutoTable?.finalY ?? 200, pageHeight - 50);
+
+  const sigY = footerY + 15 > pageHeight - 35
+      ? (() => {
+        doc.addPage();
+        return margin + 10;
+      })()
+      : footerY + 15;
+
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.line(margin, sigY, margin + 55, sigY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(30, 41, 59);
+  doc.text(managerName, margin, sigY + 5);
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Store Manager", margin, sigY + 10);
+  doc.text(`Digenerate pada: ${new Date().toLocaleString("id-ID")}`, margin, sigY + 16);
+
+  // ── Footer & Page numbers ──
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    const startY = pageHeight - 12;
+
+    doc.setDrawColor(0, 0, 204);
+    doc.setLineWidth(1);
+    doc.line(5, startY + 8, 8, startY + 2);
+    doc.line(9, startY + 8, 12, startY + 2);
+    doc.line(13, startY + 8, 16, startY + 2);
+
+    doc.setFillColor(255, 204, 0);
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 3; r++) {
+        doc.circle(20 + c * 3, startY + 3 + r * 3, 0.6, "F");
+      }
+    }
+
+    doc.setFillColor(0, 0, 204);
+    doc.ellipse(pageWidth - 40, pageHeight, 80, 15, "F");
+
+    doc.setFillColor(255, 204, 0);
+    doc.circle(pageWidth, pageHeight, 12, "F");
+    doc.setFillColor(0, 0, 204);
+    doc.circle(pageWidth, pageHeight, 6, "F");
+    doc.setFillColor(255, 255, 255);
+    for (let c = 0; c < 3; c++) {
+      for (let r = 0; r < 3; r++) {
+        doc.circle(pageWidth - 10 + c * 3, pageHeight - 6 + r * 3, 0.4, "F");
+      }
+    }
+
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Halaman ${p} dari ${totalPages}`, pageWidth - margin, pageHeight - 4, { align: "right" });
+    doc.setTextColor(148, 163, 184);
+    doc.text("Auto generated by sawadik-app", 40, pageHeight - 4);
+  }
+
+  const fileName = `DailyCleaning_Report_${storeName.replace(/\s+/g, "_")}_${reportDate.replace(/\//g, "-")}.pdf`;
+  doc.save(fileName);
+  
+  return { fileName, blob: doc.output("blob") };
+}
+
 
 export default function DailyCleaningPage() {
   const { profile } = useAuth();
@@ -51,6 +397,7 @@ export default function DailyCleaningPage() {
   const [createAssignee, setCreateAssignee] = useState<string>("");
   const [taskNames, setTaskNames] = useState<string[]>([""]);
   const [createLoading, setCreateLoading] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Photo Modal
   const [uploadTask, setUploadTask] = useState<DailyCleaningTask | null>(null);
@@ -96,6 +443,37 @@ export default function DailyCleaningPage() {
     if (!confirm("Hapus tugas ini?")) return;
     const { error } = await deleteDailyCleaningTask(taskId);
     if (!error) await loadData();
+  }
+
+  async function handleGeneratePDF() {
+    if (!profile) return;
+    setGeneratingPdf(true);
+    try {
+      const reportDate = new Date(selectedDate).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      const { fileName, blob } = await generateDailyCleaningPDFReport(
+        tasks,
+        profile.stores?.name ?? "Toko",
+        profile.stores?.code ?? null,
+        profile.full_name ?? "Manager",
+        reportDate
+      );
+      
+      if (profile.store_id) {
+        const { error } = await uploadGCPdfToPublic(blob, fileName, profile.store_id, profile.id);
+        if (error) {
+          alert("Laporan PDF berhasil didownload namun gagal dipublish ke folder Publik: " + error);
+        } else {
+          alert("Laporan PDF berhasil didownload dan otomatis dipublish ke folder Publik!");
+        }
+      }
+    } catch (err) {
+      alert("Gagal generate PDF: " + err);
+    }
+    setGeneratingPdf(false);
   }
 
   async function handleCreateTasks(e: React.FormEvent) {
@@ -160,6 +538,25 @@ export default function DailyCleaningPage() {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="w-auto h-9"
           />
+
+          {isManager && tasks.length > 0 && (
+            <Button
+              onClick={handleGeneratePDF}
+              disabled={generatingPdf}
+              className={`flex items-center gap-2 h-9 text-sm shadow-sm ${
+                tasks.every(t => t.status === "completed")
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 hover:bg-zinc-50 dark:hover:bg-zinc-700"
+              }`}
+            >
+              {generatingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">Laporan PDF</span>
+            </Button>
+          )}
 
           {isManager && (
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
@@ -297,14 +694,24 @@ export default function DailyCleaningPage() {
                   <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {assigneeTasks.map((task) => (
                       <li key={task.id} className="p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors flex gap-3 group items-start">
-                        <input
-                          type="checkbox"
-                          checked={task.status === "completed"}
-                          onChange={() => toggleTask(task)}
-                          className="mt-1 w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer disabled:opacity-50"
-                          disabled={!isManager && task.assigned_to !== profile?.id}
-                        />
-                        <div className="flex-1 min-w-0">
+                        {task.status === "completed" && task.photo_url ? (
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 cursor-pointer flex-shrink-0" onClick={() => setUploadTask(task)}>
+                            <Image src={task.photo_url} alt="Bukti" fill className="object-cover" unoptimized />
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                              <Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" />
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => toggleTask(task)}
+                            disabled={!isManager && task.assigned_to !== profile?.id}
+                            className="w-12 h-12 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Upload Foto Bukti"
+                          >
+                            <Camera className="w-5 h-5" />
+                          </button>
+                        )}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[3rem]">
                           <p className={`text-sm font-medium transition-colors ${task.status === "completed"
                               ? "text-slate-400 line-through"
                               : "text-slate-700 dark:text-slate-200"
@@ -313,23 +720,14 @@ export default function DailyCleaningPage() {
                           </p>
 
                           {task.status === "completed" && task.completer && (
-                            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                              Diselesaikan pada {new Date(task.completed_at!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Selesai {new Date(task.completed_at!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           )}
                         </div>
 
-                        <div className="flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-blue-500 hover:bg-blue-50"
-                            onClick={() => setUploadTask(task)}
-                            title="Upload Foto Bukti"
-                          >
-                            <Camera className="w-3.5 h-3.5" />
-                          </Button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
                           {isManager && (
                             <Button
                               variant="ghost"
@@ -382,14 +780,20 @@ function PhotoUploadModal({
     if (!file || !profile) return;
 
     setUploading(true);
-    const { error } = await completeDailyCleaningTask(task.id, profile.id, file);
-    setUploading(false);
+    try {
+      const compressedFile = await compressImage(file, 800, 0.7);
+      const { error } = await completeDailyCleaningTask(task.id, profile.id, compressedFile);
 
-    if (error) {
-      alert("Gagal upload foto: " + error);
-    } else {
-      onDone();
-      onClose();
+      if (error) {
+        alert("Gagal upload foto: " + error);
+      } else {
+        onDone();
+        onClose();
+      }
+    } catch (err) {
+      alert("Gagal memproses foto: " + err);
+    } finally {
+      setUploading(false);
     }
   }
 
