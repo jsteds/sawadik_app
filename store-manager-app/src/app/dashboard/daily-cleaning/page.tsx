@@ -820,7 +820,7 @@ function PhotoUploadModal({
 
         <input
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/jpg"
           capture="environment"
           className="hidden"
           ref={fileRef}
