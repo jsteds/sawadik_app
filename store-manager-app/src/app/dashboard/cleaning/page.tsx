@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { useAuth } from "@/lib/AuthContext";
 import {
@@ -13,6 +13,7 @@ import {
   uploadGCPdfToPublic,
   getTeamMembers,
   bulkCreateCleaningTasks,
+  updateCleaningTask,
 } from "@/lib/supabase";
 import type { GeneralCleaningTask, Profile } from "@/lib/types";
 import { LOCATION_TYPES } from "@/lib/types";
@@ -41,6 +42,8 @@ import {
   X,
   ChevronRight,
   ListPlus,
+  Image as ImageIcon,
+  Pencil,
 } from "lucide-react";
 
 // ─── PDF Generator ────────────────────────────────────────────────────────────
@@ -640,6 +643,7 @@ interface TaskDraft {
   area_equipment: string;
   location_type: string;
   assigned_to: string;
+  instructions: string;
   reference_photo: File | null;   // file lokal untuk preview
   reference_preview: string | null; // data URL untuk preview
 }
@@ -648,6 +652,7 @@ const DEFAULT_DRAFT: TaskDraft = {
   area_equipment: "",
   location_type: "Area",
   assigned_to: "",
+  instructions: "",
   reference_photo: null,
   reference_preview: null,
 };
@@ -663,6 +668,14 @@ export default function GeneralCleaningPage() {
   const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([{ ...DEFAULT_DRAFT }]);
   const [taskDate, setTaskDate] = useState(new Date().toISOString().split("T")[0]);
   const [createLoading, setCreateLoading] = useState(false);
+
+  // Edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<GeneralCleaningTask | null>(null);
+  const [editAreaEquipment, setEditAreaEquipment] = useState("");
+  const [editAssignedTo, setEditAssignedTo] = useState("");
+  const [editInstructions, setEditInstructions] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   // Upload modal
   const [uploadTask, setUploadTask] = useState<GeneralCleaningTask | null>(null);
@@ -690,14 +703,25 @@ export default function GeneralCleaningPage() {
 
   // ── Stats ──
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(
-    (t) => t.status === "completed" || t.status === "verified"
-  ).length;
+  const completedTasks = tasks.filter((t) => ["completed", "verified"].includes(t.status)).length;
   const pendingTasks = totalTasks - completedTasks;
-  const allDone = totalTasks > 0 && pendingTasks === 0;
-  const completionPct = totalTasks
-    ? Math.round((completedTasks / totalTasks) * 100)
-    : 0;
+  const completionPct = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+  const allDone = totalTasks > 0 && completedTasks === totalTasks;
+
+  // ── Staff Summary ──
+  const staffSummary = useMemo(() => {
+    const summary: Record<string, { pending: number; in_progress: number; completed: number }> = {};
+    tasks.forEach(t => {
+      const name = t.assignee?.full_name || t.assigned_to || "Belum di-assign";
+      if (!summary[name]) {
+        summary[name] = { pending: 0, in_progress: 0, completed: 0 };
+      }
+      if (t.status === "completed" || t.status === "verified") summary[name].completed++;
+      else if (t.status === "in_progress") summary[name].in_progress++;
+      else summary[name].pending++;
+    });
+    return summary;
+  }, [tasks]);
 
   // ── Filtered tasks ──
   const filteredTasks =
@@ -728,6 +752,7 @@ export default function GeneralCleaningPage() {
       area_equipment: d.area_equipment.trim(),
       location_type: d.location_type || null,
       assigned_to: d.assigned_to || null,
+      instructions: d.instructions.trim() || null,
       store_id: profile.store_id!,
       date: taskDate,
       reference_photo_url: refUrls[i] ?? null,
@@ -764,6 +789,7 @@ export default function GeneralCleaningPage() {
             area_equipment: cols[0] ?? "",
             location_type: cols[1] ?? "Area",
             assigned_to: "",
+            instructions: "",
             reference_photo: null,
             reference_preview: null,
           };
@@ -792,6 +818,34 @@ export default function GeneralCleaningPage() {
     const { error } = await takeoverCleaningTask(taskId, profile.id);
     if (!error) await loadData();
     else alert("Gagal: " + error);
+  }
+
+  // ── Edit Task ──
+  function openEditModal(task: GeneralCleaningTask) {
+    setEditingTask(task);
+    setEditAreaEquipment(task.area_equipment);
+    setEditAssignedTo(task.assigned_to || "");
+    setEditInstructions(task.instructions || "");
+    setShowEditModal(true);
+  }
+
+  async function handleEditTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingTask) return;
+    setEditLoading(true);
+    const { error } = await updateCleaningTask(editingTask.id, {
+      area_equipment: editAreaEquipment.trim(),
+      assigned_to: editAssignedTo || null,
+      instructions: editInstructions.trim() || null,
+    });
+    
+    if (!error) {
+      setShowEditModal(false);
+      await loadData();
+    } else {
+      alert("Gagal menyimpan perubahan: " + error);
+    }
+    setEditLoading(false);
   }
 
   // ── Generate PDF ──
@@ -938,6 +992,27 @@ export default function GeneralCleaningPage() {
         </div>
       )}
 
+      {/* ── Staff Summary ── */}
+      {totalTasks > 0 && Object.keys(staffSummary).length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 mt-4">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">Ringkasan Tugas per Staff</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {Object.entries(staffSummary).map(([name, stats]) => (
+              <div key={name} className="flex flex-col p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-zinc-800">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{name}</span>
+                <div className="flex gap-2 text-xs">
+                  <span className="text-slate-500">{stats.pending} menunggu</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-blue-500">{stats.in_progress} proses</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-emerald-500">{stats.completed} selesai</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Filter Tabs ── */}
       {totalTasks > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -1032,12 +1107,20 @@ export default function GeneralCleaningPage() {
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <StatusBadge status={task.status} />
                       {isManager && (
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          className="text-red-400 hover:text-red-600 transition-colors p-0.5"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(task)}
+                            className="text-slate-400 hover:text-blue-600 transition-colors p-0.5"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(task.id)}
+                            className="text-red-400 hover:text-red-600 transition-colors p-0.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1069,6 +1152,19 @@ export default function GeneralCleaningPage() {
                       })}
                     </span>
                   </div>
+
+                  {/* Instruksi Manager */}
+                  {task.instructions && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg p-2.5 mt-2">
+                      <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-500 mb-0.5 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Instruksi Manager
+                      </p>
+                      <p className="text-xs text-amber-700/90 dark:text-amber-400/90 leading-relaxed whitespace-pre-wrap">
+                        {task.instructions}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Photo progress indicator */}
                   <div className="flex items-center gap-1">
@@ -1313,6 +1409,26 @@ export default function GeneralCleaningPage() {
                           </select>
                         </div>
 
+                        <div className="col-span-2 space-y-1">
+                          <Label className="text-xs text-slate-500">
+                            Instruksi Tambahan (opsional)
+                          </Label>
+                          <textarea
+                            className="w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
+                            placeholder="Contoh: Tolong bersihkan bagian bawah juga..."
+                            value={draft.instructions}
+                            onChange={(e) =>
+                              setTaskDrafts((prev) =>
+                                prev.map((d, i) =>
+                                  i === idx
+                                    ? { ...d, instructions: e.target.value }
+                                    : d
+                                )
+                              )
+                            }
+                          />
+                        </div>
+
                         {/* Foto Referensi */}
                         <div className="col-span-2 space-y-1.5">
                           <Label className="text-xs text-slate-500 flex items-center gap-1">
@@ -1408,6 +1524,74 @@ export default function GeneralCleaningPage() {
                 </Button>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Task Modal ── */}
+      {showEditModal && editingTask && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowEditModal(false)}
+          />
+          <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-sm shadow-2xl p-5">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Edit Tugas</h3>
+            <form onSubmit={handleEditTask} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Nama Area / Equipment</Label>
+                <Input
+                  required
+                  value={editAreaEquipment}
+                  onChange={(e) => setEditAreaEquipment(e.target.value)}
+                  className="bg-white dark:bg-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">Assign Ke</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring h-10"
+                  value={editAssignedTo}
+                  onChange={(e) => setEditAssignedTo(e.target.value)}
+                >
+                  <option value="">— Siapa saja —</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name} ({m.position || m.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">Instruksi Tambahan</Label>
+                <textarea
+                  className="w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
+                  placeholder="Catatan untuk staff..."
+                  value={editInstructions}
+                  onChange={(e) => setEditInstructions(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={editLoading}
+                >
+                  {editLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Simpan
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

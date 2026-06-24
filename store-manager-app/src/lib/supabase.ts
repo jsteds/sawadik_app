@@ -191,6 +191,7 @@ export async function createCleaningTask(task: {
   store_id: string;
   date: string;
   reference_photo_url?: string | null;
+  instructions?: string | null;
 }): Promise<{ error: string | null }> {
   const { error } = await supabase.from("general_cleaning").insert(task);
   return { error: error ? error.message : null };
@@ -257,6 +258,21 @@ export async function takeoverCleaningTask(
   return { error: error ? error.message : null };
 }
 
+export async function updateCleaningTask(
+  taskId: string,
+  payload: {
+    area_equipment: string;
+    assigned_to: string | null;
+    instructions: string | null;
+  }
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("general_cleaning")
+    .update(payload)
+    .eq("id", taskId);
+  return { error: error ? error.message : null };
+}
+
 export async function deleteCleaningTask(
   taskId: string
 ): Promise<{ error: string | null }> {
@@ -274,6 +290,7 @@ export async function bulkCreateCleaningTasks(tasks: {
   store_id: string;
   date: string;
   reference_photo_url?: string | null;
+  instructions?: string | null;
 }[]): Promise<{ error: string | null }> {
   const { error } = await supabase.from("general_cleaning").insert(tasks);
   return { error: error ? error.message : null };
