@@ -109,17 +109,58 @@ export async function getMasterScheduleFromSheet(storeId: string, storeCode: str
     profiles.push(profile);
   });
 
-  // 2. Ambil Data Jadwal/Schedule (Tab dinamis menggunakan Kode Toko, Data dimulai baris ke-4)
-  const SHEET_NAME_SCHEDULE = `${storeCode}!A4:AJ`;
+  // 2. Ambil Data Jadwal/Schedule (Tab dinamis menggunakan Kode Toko)
+  // Tarik dari A1 untuk membaca header bulan yang ditumpuk secara vertikal
+  const SHEET_NAME_SCHEDULE = `${storeCode}!A1:AJ`;
   const schedRows = await fetchSheetData(SCHEDULE_SHEET_ID, SHEET_NAME_SCHEDULE);
   
-  /**
-   * PANDUAN MAPPING KOLOM JADWAL
-   * 0=NIK, 1=NAMA LENGKAP, 2=JOB TITTLE, 3=Tgl 1, 4=Tgl 2, dst.
-   */
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  const monthMatch = [
+    ["JAN"], ["FEB"], ["MAR"], ["APR"], ["MEI", "MAY"], ["JUN"], ["JUL"], ["AGU", "AUG"], ["SEP"], ["OKT", "OCT"], ["NOV"], ["DES", "DEC"]
+  ];
+
+  // Fungsi untuk mengecek apakah sebuah baris adalah header bulan yang dicari
+  function isTargetMonthHeader(colA: string, targetDate: Date) {
+    const text = colA.toUpperCase();
+    const year = targetDate.getFullYear().toString();
+    if (!text.includes(year)) return false;
+    
+    const targetMonthAliases = monthMatch[targetDate.getMonth()];
+    return targetMonthAliases.some(m => text.includes(m));
+  }
+
+  function isAnyMonthHeader(colA: string) {
+    const text = colA.toUpperCase();
+    const hasYear = /\d{4}/.test(text);
+    if (!hasYear) return false;
+    return monthMatch.flat().some(m => text.includes(m));
+  }
+
+  let activeMonthBlock = false;
+
   schedRows.forEach((row, rowIndex) => {
-    const employeeNik = row[0]?.trim(); // Kolom A/0 berisi NIK
-    const employeeName = row[1]?.trim(); // Kolom B/1 berisi nama lengkap
+    const colA = row[0]?.trim() || "";
+
+    // Deteksi Header Bulan (contoh: "JULI 2026")
+    if (isAnyMonthHeader(colA)) {
+      if (isTargetMonthHeader(colA, start)) {
+        activeMonthBlock = true;
+      } else {
+        activeMonthBlock = false;
+      }
+      return;
+    }
+
+    // Hanya proses baris jika kita sedang berada di blok bulan yang benar
+    if (!activeMonthBlock) return;
+
+    // Lewati baris header tabel ("NIK", "NAMA LENGKAP", dll) atau baris kosong
+    if (colA.toUpperCase() === "NIK" || !colA) return;
+
+    const employeeNik = colA;
+    const employeeName = row[1]?.trim();
     if (!employeeName) return;
 
     // Cari profil dengan nama yang cocok (case-insensitive) atau NIK
@@ -129,15 +170,15 @@ export async function getMasterScheduleFromSheet(storeId: string, storeCode: str
     );
     
     if (matchedProfile) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      let colIndex = 3; // Mulai baca shift code dari kolom D (Index 3)
-
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        // Pada sheet, Tanggal 1 berada di index 3 (Kolom D), Tanggal 2 di index 4, dst.
+        const dateOfMonth = d.getDate();
+        const colIndex = dateOfMonth + 2; 
+
         const shiftCodeName = row[colIndex];
         if (shiftCodeName && shiftCodeName.trim() !== "") {
           schedules.push({
-            id: `sched-${rowIndex}-${colIndex}`,
+            id: `sched-${rowIndex}-${colIndex}-${dateOfMonth}`,
             store_id: storeId,
             profile_id: matchedProfile.id,
             date: d.toISOString().split("T")[0],
@@ -145,7 +186,6 @@ export async function getMasterScheduleFromSheet(storeId: string, storeCode: str
             created_at: new Date().toISOString(),
           });
         }
-        colIndex++;
       }
     }
   });
