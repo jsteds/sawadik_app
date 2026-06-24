@@ -163,7 +163,8 @@ async function generatePDFReport(
   // Build rows — fetch images if available
   const tableRows: (string | object)[][] = [];
 
-  for (const task of tasks) {
+  for (let idx = 0; idx < tasks.length; idx++) {
+    const task = tasks[idx];
     const statusLabel =
       task.status === "completed" || task.status === "verified"
         ? "✓ Selesai"
@@ -172,7 +173,7 @@ async function generatePDFReport(
           : "Menunggu";
 
     const row: (string | object)[] = [
-      String(tasks.indexOf(task) + 1),
+      String(idx + 1),
       task.area_equipment,
       task.location_type || "—",
       task.assignee?.full_name || "Belum Diassign",
@@ -853,7 +854,8 @@ export default function GeneralCleaningPage() {
     if (!profile) return;
     setGeneratingPdf(true);
     try {
-      const reportDate = new Date().toLocaleDateString("id-ID", {
+      const dateToUse = tasks.length > 0 && tasks[0].date ? new Date(tasks[0].date) : new Date();
+      const reportDate = dateToUse.toLocaleDateString("id-ID", {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -1153,12 +1155,12 @@ export default function GeneralCleaningPage() {
                     </span>
                   </div>
 
-                  {/* Instruksi Manager */}
+                  {/* Catatan */}
                   {task.instructions && (
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg p-2.5 mt-2">
                       <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-500 mb-0.5 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
-                        Instruksi Manager
+                        Catatan
                       </p>
                       <p className="text-xs text-amber-700/90 dark:text-amber-400/90 leading-relaxed whitespace-pre-wrap">
                         {task.instructions}
@@ -1411,7 +1413,7 @@ export default function GeneralCleaningPage() {
 
                         <div className="col-span-2 space-y-1">
                           <Label className="text-xs text-slate-500">
-                            Instruksi Tambahan (opsional)
+                            Catatan (opsional)
                           </Label>
                           <textarea
                             className="w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
@@ -1565,7 +1567,7 @@ export default function GeneralCleaningPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-sm">Instruksi Tambahan</Label>
+                <Label className="text-sm">Catatan</Label>
                 <textarea
                   className="w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
                   placeholder="Catatan untuk staff..."
