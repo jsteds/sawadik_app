@@ -264,6 +264,7 @@ export async function updateCleaningTask(
     area_equipment: string;
     assigned_to: string | null;
     instructions: string | null;
+    date: string;
   }
 ): Promise<{ error: string | null }> {
   const { error } = await supabase

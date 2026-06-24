@@ -201,7 +201,7 @@ async function generatePDFReport(
       fontSize: 8,
     },
     columnStyles: {
-      0: { cellWidth: 8, halign: "center" },
+      0: { cellWidth: 12, halign: "center" },
       1: { cellWidth: 45 },
       2: { cellWidth: 22 },
       3: { cellWidth: 35 },
@@ -676,6 +676,7 @@ export default function GeneralCleaningPage() {
   const [editAreaEquipment, setEditAreaEquipment] = useState("");
   const [editAssignedTo, setEditAssignedTo] = useState("");
   const [editInstructions, setEditInstructions] = useState("");
+  const [editDate, setEditDate] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
   // Upload modal
@@ -827,6 +828,7 @@ export default function GeneralCleaningPage() {
     setEditAreaEquipment(task.area_equipment);
     setEditAssignedTo(task.assigned_to || "");
     setEditInstructions(task.instructions || "");
+    setEditDate(task.date ? new Date(task.date).toISOString().split("T")[0] : "");
     setShowEditModal(true);
   }
 
@@ -838,6 +840,7 @@ export default function GeneralCleaningPage() {
       area_equipment: editAreaEquipment.trim(),
       assigned_to: editAssignedTo || null,
       instructions: editInstructions.trim() || null,
+      date: editDate,
     });
     
     if (!error) {
@@ -1546,6 +1549,17 @@ export default function GeneralCleaningPage() {
                   required
                   value={editAreaEquipment}
                   onChange={(e) => setEditAreaEquipment(e.target.value)}
+                  className="bg-white dark:bg-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">Tanggal Target GC</Label>
+                <Input
+                  type="date"
+                  required
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
                   className="bg-white dark:bg-zinc-900"
                 />
               </div>
