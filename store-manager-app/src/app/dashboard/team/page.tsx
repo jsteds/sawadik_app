@@ -61,7 +61,7 @@ function DeleteConfirmModal({ member, onConfirm, onCancel, loading }: {
   loading: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
       <div className="rounded-2xl border border-white/10 p-6 w-full max-w-sm" style={{ background: "#0f172a" }}>
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -136,7 +136,7 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
       <div className="rounded-2xl border border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ background: "linear-gradient(160deg, #0f172a, #1a2540)" }}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
