@@ -591,7 +591,7 @@ function PhotoUploadModal({ task, onClose, onDone }: PhotoUploadModalProps) {
                   {/* Camera-only input */}
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/jpg"
+                    accept="image/*"
                     capture="environment"
                     className="hidden"
                     ref={refs[stage.key]}
@@ -1357,6 +1357,7 @@ export default function GeneralCleaningPage() {
                               <input
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 className="hidden"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
