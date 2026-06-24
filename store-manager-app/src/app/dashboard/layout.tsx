@@ -23,7 +23,8 @@ import BottomNav from "@/components/BottomNav";
 // ─── Header (needs auth context) ──────────────────────────────────────────────
 function Header() {
   const pathname = usePathname();
-  const { profile } = useAuth();
+  const router = useRouter();
+  const { profile, signOut } = useAuth();
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
@@ -65,6 +66,16 @@ function Header() {
         <Link href="/dashboard/settings" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
           <Settings className="w-5 h-5" />
         </Link>
+        <button 
+          onClick={async () => {
+            await signOut();
+            router.push("/login");
+          }}
+          className="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors"
+          title="Keluar"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm">
           {initials}
         </div>

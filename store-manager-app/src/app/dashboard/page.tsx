@@ -41,20 +41,29 @@ export default function DashboardPage() {
       const totalKaryawan = profiles?.length || 0;
       const inChargeHariIni = profiles?.filter(p => p.status === "aktif").length || 0;
 
-      // Fetch Cleaning Tasks
-      const { data: cleaningTasks } = await supabase
+      // Fetch General Cleaning Tasks
+      const { data: generalCleaningTasks } = await supabase
         .from("general_cleaning")
         .select("*, assignee:profiles(full_name)")
         .eq("store_id", profile.store_id)
         .eq("date", today);
 
-      const tugasTotal = cleaningTasks?.length || 0;
-      const tugasSelesai = cleaningTasks?.filter(t => t.status === "completed" || t.status === "verified").length || 0;
+      // Fetch Daily Cleaning Tasks
+      const { data: dailyCleaningTasks } = await supabase
+        .from("daily_cleaning")
+        .select("*, assignee:profiles(full_name)")
+        .eq("store_id", profile.store_id)
+        .eq("date", today);
+
+      const allCleaningTasks = [...(generalCleaningTasks || []), ...(dailyCleaningTasks || [])];
+
+      const tugasTotal = allCleaningTasks.length;
+      const tugasSelesai = allCleaningTasks.filter(t => t.status === "completed" || t.status === "verified").length;
       
-      const recentActivity = cleaningTasks
-        ?.filter(t => t.status === "completed" || t.status === "verified")
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 4) || []; 
+      const recentActivity = allCleaningTasks
+        .filter(t => t.status === "completed" || t.status === "verified")
+        .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
+        .slice(0, 4); 
 
       // Fetch Documents
       const { data: documents } = await supabase
@@ -68,7 +77,14 @@ export default function DashboardPage() {
       const dokumenBaru = documents?.filter(d => new Date(d.created_at) > sevenDaysAgo).length || 0;
 
       // Fetch Pending Cleaning Tasks
-      const pendingCleaning = cleaningTasks?.filter(t => t.status === "pending" || t.status === "in_progress").slice(0, 6) || [];
+      const pendingCleaning = allCleaningTasks
+        .filter(t => t.status === "pending" || t.status === "in_progress")
+        .sort((a, b) => {
+          if (a.assignee_id === profile.id && b.assignee_id !== profile.id) return -1;
+          if (b.assignee_id === profile.id && a.assignee_id !== profile.id) return 1;
+          return new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime();
+        })
+        .slice(0, 6);
 
       setStats({
         totalKaryawan,
@@ -159,17 +175,21 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         
         {/* Left Column: Profile */}
-        <div className="xl:col-span-3 flex flex-col gap-6">
+         <div className="xl:col-span-3 flex flex-col gap-6">
           <div className="bg-gradient-to-b from-[#8BA9D0] to-[#507EAD] rounded-[2rem] p-6 text-white shadow-md relative overflow-hidden flex flex-col items-center justify-center min-h-[250px]">
-             {/* Profile Initial Placeholder */}
-             <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center text-5xl font-semibold mb-4 backdrop-blur-sm border border-white/30 shadow-lg">
-                {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
+             {/* Profile Avatar */}
+             <div className="w-32 h-32 rounded-full mb-4 border-2 border-white/30 shadow-lg overflow-hidden bg-white/20 flex items-center justify-center">
+                <img 
+                  src={profile?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profile?.full_name || "?")}`} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
              </div>
              <h2 className="text-2xl font-medium text-center leading-tight">{profile?.full_name}</h2>
              <p className="text-white/80 text-sm font-light mt-1 tracking-wide">{profile?.role?.toUpperCase()}</p>
              
              <div className="mt-4 bg-white/20 rounded-full px-4 py-1.5 backdrop-blur-sm text-xs font-medium border border-white/10">
-               ID: {profile?.store_id?.substring(0, 6).toUpperCase()}
+               NIK: {profile?.nik || "-"}
              </div>
           </div>
 
@@ -320,7 +340,9 @@ export default function DashboardPage() {
                          </div>
                          <div className="min-w-0">
                            <p className="text-sm font-medium text-white truncate max-w-[120px]">{tugas.area_equipment || tugas.title}</p>
-                           <p className="text-[10px] text-blue-200/80 truncate font-medium">{tugas.assignee?.full_name || "Belum ditugaskan"}</p>
+                           <p className={`text-[10px] truncate font-medium ${tugas.assignee_id === profile?.id ? "text-green-300 font-bold" : "text-blue-200/80"}`}>
+                             {tugas.assignee?.full_name ? (tugas.assignee_id === profile?.id ? `Untuk Anda` : `Oleh ${tugas.assignee.full_name}`) : "Belum ditugaskan"}
+                           </p>
                          </div>
                        </div>
                        <div className="w-5 h-5 rounded border border-blue-400/40 flex items-center justify-center bg-white/5">
