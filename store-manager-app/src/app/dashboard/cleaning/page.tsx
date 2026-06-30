@@ -7,6 +7,7 @@ import {
   getCleaningTasks,
   createCleaningTask,
   uploadCleaningPhoto,
+  uploadCleaningPhotoOnBehalf,
   uploadReferencePhoto,
   takeoverCleaningTask,
   deleteCleaningTask,
@@ -44,6 +45,7 @@ import {
   ListPlus,
   Image as ImageIcon,
   Pencil,
+  Shield,
 } from "lucide-react";
 
 // ─── PDF Generator ────────────────────────────────────────────────────────────
@@ -453,9 +455,11 @@ interface PhotoUploadModalProps {
   task: GeneralCleaningTask;
   onClose: () => void;
   onDone: () => void;
+  isSuperAdmin?: boolean;
+  superAdminId?: string;
 }
 
-function PhotoUploadModal({ task, onClose, onDone }: PhotoUploadModalProps) {
+function PhotoUploadModal({ task, onClose, onDone, isSuperAdmin, superAdminId }: PhotoUploadModalProps) {
   const [currentTask, setCurrentTask] = useState(task);
   const [uploading, setUploading] = useState<string | null>(null);
   const [notes, setNotes] = useState(task.notes ?? "");
@@ -472,7 +476,10 @@ function PhotoUploadModal({ task, onClose, onDone }: PhotoUploadModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(stage);
-    const { error } = await uploadCleaningPhoto(currentTask.id, stage, file, notes);
+    // Super Admin "on behalf" mode: use uploadCleaningPhotoOnBehalf
+    const { error } = isSuperAdmin && superAdminId
+      ? await uploadCleaningPhotoOnBehalf(currentTask.id, stage, file, superAdminId, notes)
+      : await uploadCleaningPhoto(currentTask.id, stage, file, notes);
     if (error) {
       alert("Gagal upload: " + error);
     } else {
@@ -540,6 +547,14 @@ function PhotoUploadModal({ task, onClose, onDone }: PhotoUploadModalProps) {
             <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-xl px-4 py-3 text-sm font-medium">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               Tugas ini telah diselesaikan!
+            </div>
+          )}
+
+          {/* On behalf notice */}
+          {isSuperAdmin && !isCompleted && task.assigned_to && (
+            <div className="flex items-center gap-2 text-violet-600 bg-violet-50 dark:bg-violet-900/20 dark:text-violet-400 rounded-xl px-4 py-3 text-sm font-medium">
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              Upload atas nama: <strong>{task.assignee?.full_name ?? "Staff"}</strong>
             </div>
           )}
 
@@ -659,7 +674,7 @@ const DEFAULT_DRAFT: TaskDraft = {
 };
 
 export default function GeneralCleaningPage() {
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin, activeStoreId } = useAuth();
   const [tasks, setTasks] = useState<GeneralCleaningTask[]>([]);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -688,20 +703,24 @@ export default function GeneralCleaningPage() {
   // Filter
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
+  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
+
   const loadData = useCallback(async () => {
     if (!profile) return;
+    if (isSuperAdmin && !activeStoreId) return; // Wait for activeStoreId
     setLoading(true);
-    const [t, m] = await Promise.all([getCleaningTasks(), getTeamMembers()]);
+    const storeFilter = isSuperAdmin ? (activeStoreId ?? undefined) : undefined;
+    const [t, m] = await Promise.all([getCleaningTasks(storeFilter), getTeamMembers(storeFilter)]);
     setTasks(t as GeneralCleaningTask[]);
     setTeamMembers(m as Profile[]);
     setLoading(false);
-  }, [profile]);
+  }, [profile, isSuperAdmin, activeStoreId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const isManager = profile?.role === "manager" || profile?.role === "admin";
+  const isManager = profile?.role === "manager" || profile?.role === "admin" || isSuperAdmin;
 
   // ── Stats ──
   const totalTasks = tasks.length;
@@ -736,7 +755,8 @@ export default function GeneralCleaningPage() {
   // ── Create tasks ──
   async function handleCreateTasks(e: React.FormEvent) {
     e.preventDefault();
-    if (!profile?.store_id) return;
+    const targetStoreId = effectiveStoreId;
+    if (!targetStoreId) return;
     const validDrafts = taskDrafts.filter((d) => d.area_equipment.trim() !== "");
     if (!validDrafts.length) return;
     setCreateLoading(true);
@@ -745,7 +765,7 @@ export default function GeneralCleaningPage() {
     const refUrls = await Promise.all(
       validDrafts.map(async (d) => {
         if (!d.reference_photo) return null;
-        const { url } = await uploadReferencePhoto(d.reference_photo, profile.store_id!);
+        const { url } = await uploadReferencePhoto(d.reference_photo, targetStoreId);
         return url;
       })
     );
@@ -755,7 +775,7 @@ export default function GeneralCleaningPage() {
       location_type: d.location_type || null,
       assigned_to: d.assigned_to || null,
       instructions: d.instructions.trim() || null,
-      store_id: profile.store_id!,
+      store_id: targetStoreId,
       date: taskDate,
       reference_photo_url: refUrls[i] ?? null,
     }));
@@ -871,8 +891,8 @@ export default function GeneralCleaningPage() {
         reportDate
       );
       
-      if (profile.store_id) {
-        const { error } = await uploadGCPdfToPublic(blob, fileName, profile.store_id, profile.id);
+      if (effectiveStoreId) {
+        const { error } = await uploadGCPdfToPublic(blob, fileName, effectiveStoreId, profile.id);
         if (error) {
           alert("Laporan PDF berhasil didownload namun gagal dipublish ke Public: " + error);
         } else {
@@ -1065,6 +1085,7 @@ export default function GeneralCleaningPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredTasks.map((task) => {
             const isMyTask = task.assigned_to === profile?.id;
+            const canActOnBehalf = isSuperAdmin && !isMyTask && task.assigned_to;
             const isCompleted =
               task.status === "completed" || task.status === "verified";
             const photoCount = [
@@ -1230,7 +1251,7 @@ export default function GeneralCleaningPage() {
 
                   {/* Action button */}
                   {!isCompleted && (
-                    <div>
+                    <div className="space-y-1.5">
                       {isMyTask ? (
                         <Button
                           onClick={() => setUploadTask(task)}
@@ -1239,6 +1260,16 @@ export default function GeneralCleaningPage() {
                         >
                           <Camera className="w-4 h-4" />
                           Upload Bukti Foto
+                          <ChevronRight className="w-3.5 h-3.5 ml-auto" />
+                        </Button>
+                      ) : canActOnBehalf ? (
+                        <Button
+                          onClick={() => setUploadTask(task)}
+                          className="w-full flex items-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 dark:bg-violet-900/20 dark:hover:bg-violet-900/40 dark:text-violet-400 border border-violet-200 dark:border-violet-800"
+                          variant="ghost"
+                        >
+                          <Camera className="w-4 h-4" />
+                          Kerjakan untuk {task.assignee?.full_name ?? "Staff"}
                           <ChevronRight className="w-3.5 h-3.5 ml-auto" />
                         </Button>
                       ) : (
@@ -1621,6 +1652,8 @@ export default function GeneralCleaningPage() {
             setUploadTask(null);
             loadData();
           }}
+          isSuperAdmin={isSuperAdmin}
+          superAdminId={isSuperAdmin ? profile?.id : undefined}
         />
       )}
     </div>

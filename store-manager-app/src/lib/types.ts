@@ -17,7 +17,7 @@ export interface Profile {
   email: string;
   full_name: string | null;
   nik: string | null;
-  role: "admin" | "manager" | "staff";
+  role: "super_admin" | "admin" | "manager" | "staff";
   position: string | null;       // jabatan: "Kasir Senior", "Staff Gudang", dll
   status: "aktif" | "cuti" | "resign";
   store_id: string | null;
@@ -39,7 +39,7 @@ export type MemberFormData = {
   nik: string;
   email: string;
   position: string;
-  role: "manager" | "staff";
+  role: "super_admin" | "manager" | "staff";
   status: "aktif" | "cuti" | "resign";
   join_date: string;
   avatar_url?: string;
@@ -53,6 +53,7 @@ export const POSITION_OPTIONS = [
 ] as const;
 
 export const ROLE_LABELS: Record<Profile["role"], string> = {
+  super_admin: "Super Admin",
   admin: "Admin",
   manager: "Manager",
   staff: "Staff",
@@ -83,10 +84,12 @@ export interface GeneralCleaningTask {
   reference_photo_url: string | null; // foto referensi area/equipment yang diunggah manager
   notes: string | null; // catatan dari staff saat upload foto
   instructions?: string | null; // instruksi tambahan dari manager
+  acted_by?: string | null; // ID super admin yang mengerjakan atas nama staff
   date: string;
   created_at: string;
   // joined from profiles table (optional)
   assignee?: Profile | null;
+  actor?: { full_name: string | null } | null; // super admin yang mengerjakan
 }
 
 export const LOCATION_TYPES = [
@@ -111,11 +114,13 @@ export interface DailyCleaningTask {
   completed_by?: string;
   completed_at?: string;
   photo_url?: string;
+  acted_by?: string | null; // ID super admin yang mengerjakan atas nama staff
   created_at: string;
 
   // joined data
   assignee?: { full_name: string; avatar_url: string };
   completer?: { full_name: string; avatar_url: string };
+  actor?: { full_name: string | null } | null;
   store?: { name: string };
 }
 

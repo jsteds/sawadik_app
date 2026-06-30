@@ -220,7 +220,7 @@ function UploadModal({ onClose, onSuccess, storeId, uploadedBy }: UploadModalPro
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DocumentsPage() {
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin, activeStoreId } = useAuth();
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -229,14 +229,18 @@ export default function DocumentsPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const isManager = profile?.role === "manager" || profile?.role === "admin";
+  const isManager = profile?.role === "manager" || profile?.role === "admin" || isSuperAdmin;
+  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
 
   const loadDocs = useCallback(async () => {
+    if (!profile) return;
+    if (isSuperAdmin && !activeStoreId) return;
     setLoading(true);
-    const data = await getDocuments();
+    const storeFilter = isSuperAdmin ? (activeStoreId ?? undefined) : undefined;
+    const data = await getDocuments(storeFilter);
     setDocs(data as Document[]);
     setLoading(false);
-  }, []);
+  }, [profile, isSuperAdmin, activeStoreId]);
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
@@ -431,8 +435,8 @@ export default function DocumentsPage() {
                       >
                         <Download className="w-4 h-4" />
                       </a>
-                      {/* Delete (manager only & must own the file) */}
-                      {isManager && doc.store_id === profile?.store_id && (
+                      {/* Delete (manager only & must own the file, or super admin with active store) */}
+                      {isManager && (doc.store_id === effectiveStoreId) && (
                         <button
                           onClick={() => handleDelete(doc)}
                           disabled={deletingId === doc.id}
@@ -463,11 +467,11 @@ export default function DocumentsPage() {
       )}
 
       {/* Upload Modal */}
-      {showUploadModal && profile?.store_id && (
+      {showUploadModal && effectiveStoreId && profile && (
         <UploadModal
           onClose={() => setShowUploadModal(false)}
           onSuccess={loadDocs}
-          storeId={profile.store_id}
+          storeId={effectiveStoreId}
           uploadedBy={profile.id}
         />
       )}

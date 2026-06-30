@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Loader2, Plus, X, Settings2, Eye, ShieldAlert, Check } from "lucide-react";
 
 export default function StoreSettings() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, isSuperAdmin, activeStoreId, allStores, refreshProfile } = useAuth();
   
   const [customPositions, setCustomPositions] = useState<string[]>([]);
   const [newPosition, setNewPosition] = useState("");
@@ -23,13 +23,20 @@ export default function StoreSettings() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
+  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
+
   useEffect(() => {
-    if (profile?.stores) {
-      setCustomPositions(profile.stores.custom_positions || []);
-      setTeamVisibility(profile.stores.team_visibility || false);
-      setCleaningVisibility(profile.stores.cleaning_visibility || false);
+    let currentStore = profile?.stores;
+    if (isSuperAdmin && activeStoreId) {
+      currentStore = allStores.find((s) => s.id === activeStoreId) as any;
     }
-  }, [profile]);
+
+    if (currentStore) {
+      setCustomPositions(currentStore.custom_positions || []);
+      setTeamVisibility(currentStore.team_visibility || false);
+      setCleaningVisibility(currentStore.cleaning_visibility || false);
+    }
+  }, [profile, isSuperAdmin, activeStoreId, allStores]);
 
   const handleAddPosition = () => {
     if (newPosition.trim() && !customPositions.includes(newPosition.trim())) {
@@ -43,13 +50,13 @@ export default function StoreSettings() {
   };
 
   const handleSave = async () => {
-    if (!profile?.store_id) return;
+    if (!effectiveStoreId) return;
     
     setSaving(true);
     setSuccessMsg("");
     setErrorMsg("");
 
-    const { error } = await updateStoreSettings(profile.store_id, {
+    const { error } = await updateStoreSettings(effectiveStoreId, {
       custom_positions: customPositions,
       team_visibility: teamVisibility,
       cleaning_visibility: cleaningVisibility,
@@ -66,7 +73,7 @@ export default function StoreSettings() {
     setSaving(false);
   };
 
-  if (!profile || profile.role === "staff") {
+  if (!profile || (profile.role === "staff" && !isSuperAdmin)) {
     return (
       <div className="flex items-center justify-center h-64 text-zinc-400">
         Anda tidak memiliki akses ke halaman ini.

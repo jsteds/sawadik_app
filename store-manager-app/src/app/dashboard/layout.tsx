@@ -13,6 +13,8 @@ import {
   LogOut,
   Store,
   CalendarDays,
+  ChevronDown,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -24,7 +26,8 @@ import BottomNav from "@/components/BottomNav";
 function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isSuperAdmin, activeStoreId, setActiveStore, allStores } = useAuth();
+  const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
@@ -46,10 +49,12 @@ function Header() {
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "?";
 
+  const activeStore = allStores.find((s) => s.id === activeStoreId);
+
   return (
     <header className="h-16 bg-white dark:bg-zinc-900 border-b flex items-center justify-between px-4 md:px-8">
       <div className="flex items-center gap-3">
-        {/* We can reintroduce the logo here since the sidebar logo is gone */}
+        {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold mr-2">
           <img src="/logo.png" alt="SawadikApp Logo" className="w-8 h-8 rounded-lg object-cover" />
         </Link>
@@ -57,12 +62,63 @@ function Header() {
           {currentPage}
         </h1>
       </div>
-      <div className="flex items-center gap-4">
-        {profile?.stores && (
+      <div className="flex items-center gap-3">
+        {/* Super Admin Store Selector */}
+        {isSuperAdmin && allStores.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700 text-sm font-medium text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors"
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span className="max-w-[120px] truncate">{activeStore?.name ?? "Pilih Toko"}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${storeDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+            {storeDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setStoreDropdownOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
+                  {allStores.map((store) => (
+                    <button
+                      key={store.id}
+                      onClick={() => {
+                        setActiveStore(store.id);
+                        setStoreDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2 ${
+                        store.id === activeStoreId
+                          ? "text-violet-600 dark:text-violet-400 font-semibold bg-violet-50 dark:bg-violet-900/20"
+                          : "text-zinc-700 dark:text-zinc-300"
+                      }`}
+                    >
+                      <Store className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{store.name}</span>
+                      {store.code && (
+                        <span className="text-[10px] text-zinc-400 ml-auto flex-shrink-0">({store.code})</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Store name for non-super-admin */}
+        {!isSuperAdmin && profile?.stores && (
           <span className="hidden sm:block text-xs text-gray-400 dark:text-gray-500">
             {profile.stores.name}
           </span>
         )}
+
+        {/* Super Admin Badge */}
+        {isSuperAdmin && (
+          <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] font-bold uppercase tracking-wider">
+            <Shield className="w-3 h-3" />
+            Super Admin
+          </div>
+        )}
+
         <Link href="/dashboard/settings" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
           <Settings className="w-5 h-5" />
         </Link>
@@ -86,7 +142,7 @@ function Header() {
 
 // ─── Inner Layout (handles auth & onboarding check) ──────────────────────────
 function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
-  const { session, profile, loading, signOut } = useAuth();
+  const { session, profile, loading, signOut, isSuperAdmin } = useAuth();
   const router = useRouter();
 
   // Redirect if user is not logged in
@@ -113,8 +169,9 @@ function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  // Logged in but profile is null (or store_id is null) => show onboarding
-  if (!profile || !profile.store_id) {
+  // Super Admin doesn't need onboarding — they select stores via dropdown
+  // Regular user: Logged in but profile is null (or store_id is null) => show onboarding
+  if (!isSuperAdmin && (!profile || !profile.store_id)) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
         {/* Simple header with logout for onboarding users */}

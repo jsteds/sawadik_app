@@ -7,6 +7,7 @@ import {
   getDailyCleaningTasks,
   bulkCreateDailyCleaningTasks,
   completeDailyCleaningTask,
+  completeDailyCleaningTaskOnBehalf,
   uncompleteDailyCleaningTask,
   deleteDailyCleaningTask,
   getTeamMembers,
@@ -37,7 +38,8 @@ import {
   User,
   ListTodo,
   Clock,
-  FileText
+  FileText,
+  Shield,
 } from "lucide-react";
 
 // ─── Helpers untuk PDF ────────────────────────────────────────────────────────
@@ -384,8 +386,8 @@ async function generateDailyCleaningPDFReport(
 
 
 export default function DailyCleaningPage() {
-  const { profile } = useAuth();
-  const isManager = profile?.role === "manager" || profile?.role === "admin";
+  const { profile, isSuperAdmin, activeStoreId } = useAuth();
+  const isManager = profile?.role === "manager" || profile?.role === "admin" || isSuperAdmin;
 
   const [tasks, setTasks] = useState<DailyCleaningTask[]>([]);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
@@ -402,17 +404,21 @@ export default function DailyCleaningPage() {
   // Photo Modal
   const [uploadTask, setUploadTask] = useState<DailyCleaningTask | null>(null);
 
+  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
+
   const loadData = useCallback(async () => {
-    if (!profile?.store_id) return;
+    if (!effectiveStoreId && !isSuperAdmin) return;
+    if (isSuperAdmin && !activeStoreId) return; // Wait for activeStoreId
     setLoading(true);
+    const storeFilter = isSuperAdmin ? (activeStoreId ?? undefined) : undefined;
     const [data, members] = await Promise.all([
-      getDailyCleaningTasks(selectedDate),
-      getTeamMembers()
+      getDailyCleaningTasks(selectedDate, storeFilter),
+      getTeamMembers(storeFilter)
     ]);
     setTasks(data as DailyCleaningTask[]);
     setTeamMembers(members);
     setLoading(false);
-  }, [profile?.store_id, selectedDate]);
+  }, [effectiveStoreId, isSuperAdmin, activeStoreId, selectedDate]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -423,7 +429,7 @@ export default function DailyCleaningPage() {
   async function toggleTask(task: DailyCleaningTask) {
     if (!profile) return;
     
-    // Validate if the current user is the assignee or manager
+    // Super Admin can toggle anyone's task, otherwise only assignee or manager
     if (task.assigned_to !== profile.id && !isManager) {
       alert("Hanya orang yang ditugaskan atau manager yang dapat mengubah status tugas ini.");
       return;
@@ -462,8 +468,8 @@ export default function DailyCleaningPage() {
         reportDate
       );
       
-      if (profile.store_id) {
-        const { error } = await uploadGCPdfToPublic(blob, fileName, profile.store_id, profile.id);
+      if (effectiveStoreId) {
+        const { error } = await uploadGCPdfToPublic(blob, fileName, effectiveStoreId, profile.id);
         if (error) {
           alert("Laporan PDF berhasil didownload namun gagal dipublish ke folder Publik: " + error);
         } else {
@@ -478,7 +484,7 @@ export default function DailyCleaningPage() {
 
   async function handleCreateTasks(e: React.FormEvent) {
     e.preventDefault();
-    if (!profile?.store_id) return;
+    if (!effectiveStoreId) return;
 
     if (!createAssignee) {
       alert("Silakan pilih staf yang ditugaskan.");
@@ -490,7 +496,7 @@ export default function DailyCleaningPage() {
 
     setCreateLoading(true);
     const rows = validNames.map(name => ({
-      store_id: profile.store_id!,
+      store_id: effectiveStoreId!,
       date: selectedDate,
       task_name: name.trim(),
       assigned_to: createAssignee
@@ -755,6 +761,8 @@ export default function DailyCleaningPage() {
           task={uploadTask}
           onClose={() => setUploadTask(null)}
           onDone={loadData}
+          isSuperAdmin={isSuperAdmin}
+          superAdminId={isSuperAdmin ? profile?.id : undefined}
         />
       )}
     </div>
@@ -765,11 +773,15 @@ export default function DailyCleaningPage() {
 function PhotoUploadModal({
   task,
   onClose,
-  onDone
+  onDone,
+  isSuperAdmin,
+  superAdminId,
 }: {
   task: DailyCleaningTask;
   onClose: () => void;
   onDone: () => void;
+  isSuperAdmin?: boolean;
+  superAdminId?: string;
 }) {
   const { profile } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -782,7 +794,11 @@ function PhotoUploadModal({
     setUploading(true);
     try {
       const compressedFile = await compressImage(file, 800, 0.7);
-      const { error } = await completeDailyCleaningTask(task.id, profile.id, compressedFile);
+      // Super Admin on behalf: keep original staff as completed_by
+      const staffId = task.assigned_to || profile.id;
+      const { error } = isSuperAdmin && superAdminId
+        ? await completeDailyCleaningTaskOnBehalf(task.id, staffId, superAdminId, compressedFile)
+        : await completeDailyCleaningTask(task.id, profile.id, compressedFile);
 
       if (error) {
         alert("Gagal upload foto: " + error);
@@ -811,6 +827,14 @@ function PhotoUploadModal({
         <p className="text-sm text-slate-500 mb-4">
           Foto bukti <strong>wajib diunggah</strong> untuk menyelesaikan tugas <span className="font-semibold text-slate-800 dark:text-slate-200">{task.task_name}</span>.
         </p>
+
+        {/* On behalf notice */}
+        {isSuperAdmin && task.assigned_to && task.assigned_to !== profile?.id && (
+          <div className="flex items-center gap-2 text-violet-600 bg-violet-50 dark:bg-violet-900/20 dark:text-violet-400 rounded-xl px-3 py-2 text-xs font-medium mb-4">
+            <Shield className="w-4 h-4 flex-shrink-0" />
+            Upload atas nama: <strong>{task.assignee?.full_name ?? "Staff"}</strong>
+          </div>
+        )}
 
         {task.photo_url ? (
           <div className="relative aspect-video w-full rounded-lg overflow-hidden border mb-4">

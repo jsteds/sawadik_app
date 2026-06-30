@@ -397,7 +397,7 @@ function SkeletonCard() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function TeamPage() {
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin, activeStoreId } = useAuth();
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
@@ -411,16 +411,22 @@ export default function TeamPage() {
   const [deletingMember, setDeletingMember] = useState<Profile | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const canManage = profile?.role === "manager" || profile?.role === "admin";
+  const canManage = profile?.role === "manager" || profile?.role === "admin" || isSuperAdmin;
+
+  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
 
   // ─ Load members ─
   useEffect(() => {
-    loadMembers();
-  }, []);
+    if (isSuperAdmin && !activeStoreId) return;
+    if (effectiveStoreId || isSuperAdmin) {
+      loadMembers();
+    }
+  }, [effectiveStoreId, isSuperAdmin, activeStoreId]);
 
   async function loadMembers() {
     setLoading(true);
-    const data = await getTeamMembers();
+    const storeFilter = isSuperAdmin ? (activeStoreId ?? undefined) : undefined;
+    const data = await getTeamMembers(storeFilter);
     setMembers(data);
     setLoading(false);
   }
@@ -470,7 +476,7 @@ export default function TeamPage() {
 
   // ─ CRUD Handlers ─
   async function handleSave(formData: MemberFormData, avatarFile?: File) {
-    if (!profile?.store_id) {
+    if (!effectiveStoreId && !isSuperAdmin) {
       setToast({ message: "Akun ini belum terhubung ke toko manapun.", type: "error" });
       return;
     }
@@ -502,10 +508,16 @@ export default function TeamPage() {
         loadMembers();
       }
     } else {
-      // Tambah
-      const { error } = await addTeamMember(profile.store_id, { ...formData, avatar_url: avatarUrl });
+      // Tambah baru
+      if (!effectiveStoreId) {
+        setToast({ message: "Gagal: Store ID tidak ditemukan.", type: "error" });
+        setFormLoading(false);
+        return;
+      }
+      
+      const { error } = await addTeamMember(effectiveStoreId, { ...formData, avatar_url: avatarUrl });
       if (error) {
-        setToast({ message: `Gagal tambah: ${error}`, type: "error" });
+        setToast({ message: `Gagal menambah anggota: ${error}`, type: "error" });
       } else {
         setToast({ message: "Anggota berhasil ditambahkan!", type: "success" });
         setShowForm(false);

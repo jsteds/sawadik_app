@@ -6,8 +6,9 @@ import { supabase } from "@/lib/supabase";
 import { Users, FileText, CheckCircle, ChevronDown, ChevronUp, Clock, CalendarDays } from "lucide-react";
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin, activeStoreId } = useAuth();
   
+  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
   const [stats, setStats] = useState({
     totalKaryawan: 0,
     inChargeHariIni: 0,
@@ -25,7 +26,8 @@ export default function DashboardPage() {
   const [expandedSection, setExpandedSection] = useState<string>("status");
 
   useEffect(() => {
-    if (!profile?.store_id) return;
+    if (!effectiveStoreId && !isSuperAdmin) return;
+    if (isSuperAdmin && !activeStoreId) return; // Wait for activeStoreId
 
     const fetchDashboardData = async () => {
       setLoading(true);
@@ -33,27 +35,37 @@ export default function DashboardPage() {
       const today = new Date().toISOString().split('T')[0];
 
       // Fetch Profiles
-      const { data: profiles } = await supabase
+      let profilesQuery = supabase
         .from("profiles")
-        .select("id, status")
-        .eq("store_id", profile.store_id);
+        .select("id, status");
+      
+      if (effectiveStoreId) {
+        profilesQuery = profilesQuery.eq("store_id", effectiveStoreId);
+      }
+      const { data: profiles } = await profilesQuery;
 
       const totalKaryawan = profiles?.length || 0;
       const inChargeHariIni = profiles?.filter(p => p.status === "aktif").length || 0;
 
       // Fetch General Cleaning Tasks
-      const { data: generalCleaningTasks } = await supabase
+      let gcQuery = supabase
         .from("general_cleaning")
         .select("*, assignee:profiles(full_name)")
-        .eq("store_id", profile.store_id)
         .eq("date", today);
+      if (effectiveStoreId) {
+        gcQuery = gcQuery.eq("store_id", effectiveStoreId);
+      }
+      const { data: generalCleaningTasks } = await gcQuery;
 
       // Fetch Daily Cleaning Tasks
-      const { data: dailyCleaningTasks } = await supabase
+      let dcQuery = supabase
         .from("daily_cleaning")
         .select("*, assignee:profiles(full_name)")
-        .eq("store_id", profile.store_id)
         .eq("date", today);
+      if (effectiveStoreId) {
+        dcQuery = dcQuery.eq("store_id", effectiveStoreId);
+      }
+      const { data: dailyCleaningTasks } = await dcQuery;
 
       const allCleaningTasks = [...(generalCleaningTasks || []), ...(dailyCleaningTasks || [])];
 
@@ -66,10 +78,13 @@ export default function DashboardPage() {
         .slice(0, 4); 
 
       // Fetch Documents
-      const { data: documents } = await supabase
+      let docsQuery = supabase
         .from("documents")
-        .select("created_at")
-        .eq("store_id", profile.store_id);
+        .select("created_at");
+      if (effectiveStoreId) {
+        docsQuery = docsQuery.eq("store_id", effectiveStoreId);
+      }
+      const { data: documents } = await docsQuery;
 
       const dokumenTotal = documents?.length || 0;
       const sevenDaysAgo = new Date();
@@ -80,8 +95,8 @@ export default function DashboardPage() {
       const pendingCleaning = allCleaningTasks
         .filter(t => t.status === "pending" || t.status === "in_progress")
         .sort((a, b) => {
-          if (a.assignee_id === profile.id && b.assignee_id !== profile.id) return -1;
-          if (b.assignee_id === profile.id && a.assignee_id !== profile.id) return 1;
+          if (a.assignee_id === profile?.id && b.assignee_id !== profile?.id) return -1;
+          if (b.assignee_id === profile?.id && a.assignee_id !== profile?.id) return 1;
           return new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime();
         })
         .slice(0, 6);
@@ -101,7 +116,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, [profile?.store_id]);
+  }, [effectiveStoreId, isSuperAdmin, profile]);
 
   if (loading) {
     return (

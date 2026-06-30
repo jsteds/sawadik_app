@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { MemberFormData, Profile } from "./types";
+import type { MemberFormData, Profile, Store } from "./types";
 
 const supabaseUrl =
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
@@ -34,16 +34,39 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return data as Profile | null;
 }
 
+// ─── Super Admin Helpers ───────────────────────────────────────────────────────
+
+/** Ambil semua toko (untuk Super Admin store selector). */
+export async function getAllStores(): Promise<Store[]> {
+  const { data, error } = await supabase
+    .from("stores")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    console.error("getAllStores error:", error.message);
+    return [];
+  }
+  return (data as Store[]) ?? [];
+}
+
 // ─── Team CRUD Helpers ─────────────────────────────────────────────────────────
 
 /** Ambil semua anggota tim di store yang sama dengan user login.
  *  RLS Supabase otomatis memfilter berdasarkan store_id.
+ *  Super Admin bisa filter by storeId tertentu.
  */
-export async function getTeamMembers(): Promise<Profile[]> {
-  const { data, error } = await supabase
+export async function getTeamMembers(storeId?: string): Promise<Profile[]> {
+  let query = supabase
     .from("profiles")
     .select("*, stores(*)")
     .order("created_at", { ascending: true });
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("getTeamMembers error:", error.message);
@@ -171,11 +194,17 @@ export async function updateStoreSettings(
 
 // ─── General Cleaning Helpers ──────────────────────────────────────────────────
 
-export async function getCleaningTasks(): Promise<any[]> {
-  const { data, error } = await supabase
+export async function getCleaningTasks(storeId?: string): Promise<any[]> {
+  let query = supabase
     .from("general_cleaning")
-    .select("*, assignee:profiles(*)")
+    .select("*, assignee:profiles(*), actor:profiles!general_cleaning_acted_by_fkey(full_name)")
     .order("created_at", { ascending: false });
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("getCleaningTasks error:", error.message);
@@ -258,6 +287,60 @@ export async function takeoverCleaningTask(
   return { error: error ? error.message : null };
 }
 
+/** Upload foto cleaning ATAS NAMA staff tertentu (Super Admin feature).
+ *  assigned_to TIDAK berubah — nama staff tetap.
+ *  acted_by diisi dengan Super Admin ID.
+ */
+export async function uploadCleaningPhotoOnBehalf(
+  taskId: string,
+  stage: "before" | "progress" | "after",
+  file: File,
+  superAdminId: string,
+  notes?: string
+): Promise<{ url: string | null; error: string | null }> {
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${taskId}-${stage}-${Date.now()}.${fileExt}`;
+  const path = `tasks/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("cleaning_photos")
+    .upload(path, file, { upsert: true });
+
+  if (uploadError) {
+    return { url: null, error: uploadError.message };
+  }
+
+  const { data } = supabase.storage.from("cleaning_photos").getPublicUrl(path);
+  const photoUrl = data.publicUrl;
+
+  const updatePayload: Record<string, string> = { acted_by: superAdminId };
+  if (stage === "before") {
+    updatePayload.before_photo_url = photoUrl;
+    updatePayload.status = "in_progress";
+  } else if (stage === "progress") {
+    updatePayload.progress_photo_url = photoUrl;
+    updatePayload.status = "in_progress";
+  } else if (stage === "after") {
+    updatePayload.after_photo_url = photoUrl;
+    updatePayload.status = "completed";
+  }
+
+  if (notes) {
+    updatePayload.notes = notes;
+  }
+
+  const { error: updateError } = await supabase
+    .from("general_cleaning")
+    .update(updatePayload)
+    .eq("id", taskId);
+
+  if (updateError) {
+    return { url: null, error: updateError.message };
+  }
+
+  return { url: photoUrl, error: null };
+}
+
 export async function updateCleaningTask(
   taskId: string,
   payload: {
@@ -320,12 +403,18 @@ export async function uploadReferencePhoto(
 
 // ─── Daily Cleaning Helpers ────────────────────────────────────────────────────
 
-export async function getDailyCleaningTasks(date: string): Promise<any[]> {
-  const { data, error } = await supabase
+export async function getDailyCleaningTasks(date: string, storeId?: string): Promise<any[]> {
+  let query = supabase
     .from("daily_cleaning")
-    .select("*, completer:profiles!completed_by(*), assignee:profiles!assigned_to(*), store:stores(name)")
+    .select("*, completer:profiles!completed_by(*), assignee:profiles!assigned_to(*), actor:profiles!daily_cleaning_acted_by_fkey(full_name), store:stores(name)")
     .eq("date", date)
     .order("created_at", { ascending: true });
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("getDailyCleaningTasks error:", error.message);
@@ -386,6 +475,52 @@ export async function completeDailyCleaningTask(
   return { error: error ? error.message : null };
 }
 
+/** Selesaikan tugas daily cleaning ATAS NAMA staff (Super Admin feature).
+ *  completed_by tetap staff yang ditugaskan, acted_by = Super Admin ID.
+ */
+export async function completeDailyCleaningTaskOnBehalf(
+  taskId: string,
+  staffUserId: string,
+  superAdminId: string,
+  photoFile?: File | null
+): Promise<{ error: string | null }> {
+  let photoUrl: string | null = null;
+
+  if (photoFile) {
+    const ext = photoFile.name.split(".").pop();
+    const fileName = `daily-${taskId}-${Date.now()}.${ext}`;
+    const path = `daily/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("cleaning_photos")
+      .upload(path, photoFile, { upsert: true });
+
+    if (uploadError) {
+      return { error: uploadError.message };
+    }
+    const { data } = supabase.storage.from("cleaning_photos").getPublicUrl(path);
+    photoUrl = data.publicUrl;
+  }
+
+  const payload: Record<string, unknown> = {
+    status: "completed",
+    completed_by: staffUserId,
+    completed_at: new Date().toISOString(),
+    acted_by: superAdminId,
+  };
+
+  if (photoUrl) {
+    payload.photo_url = photoUrl;
+  }
+
+  const { error } = await supabase
+    .from("daily_cleaning")
+    .update(payload)
+    .eq("id", taskId);
+
+  return { error: error ? error.message : null };
+}
+
 export async function uncompleteDailyCleaningTask(
   taskId: string
 ): Promise<{ error: string | null }> {
@@ -396,6 +531,7 @@ export async function uncompleteDailyCleaningTask(
       completed_by: null,
       completed_at: null,
       photo_url: null,
+      acted_by: null,
     })
     .eq("id", taskId);
   return { error: error ? error.message : null };
@@ -410,11 +546,17 @@ export async function deleteDailyCleaningTask(
 
 // ─── Documents (SOP / WI) Helpers ─────────────────────────────────────────────
 
-export async function getDocuments(): Promise<any[]> {
-  const { data, error } = await supabase
+export async function getDocuments(storeFilter?: string): Promise<any[]> {
+  let query = supabase
     .from("documents")
     .select("*, uploader:profiles(full_name), store:stores(name)")
     .order("created_at", { ascending: false });
+
+  if (storeFilter) {
+    query = query.eq("store_id", storeFilter);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("getDocuments error:", error.message);
