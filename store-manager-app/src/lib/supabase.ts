@@ -197,7 +197,7 @@ export async function updateStoreSettings(
 export async function getCleaningTasks(storeId?: string): Promise<any[]> {
   let query = supabase
     .from("general_cleaning")
-    .select("*, assignee:profiles(*), actor:profiles!general_cleaning_acted_by_fkey(full_name)")
+    .select("*, assignee:profiles(*)")
     .order("created_at", { ascending: false });
 
   if (storeId) {
@@ -406,7 +406,7 @@ export async function uploadReferencePhoto(
 export async function getDailyCleaningTasks(date: string, storeId?: string): Promise<any[]> {
   let query = supabase
     .from("daily_cleaning")
-    .select("*, completer:profiles!completed_by(*), assignee:profiles!assigned_to(*), actor:profiles!daily_cleaning_acted_by_fkey(full_name), store:stores(name)")
+    .select("*, completer:profiles!completed_by(*), assignee:profiles!assigned_to(*), store:stores(name)")
     .eq("date", date)
     .order("created_at", { ascending: true });
 
