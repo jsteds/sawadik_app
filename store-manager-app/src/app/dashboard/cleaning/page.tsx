@@ -404,16 +404,49 @@ function drawPlaceholder(
   });
 }
 
-async function fetchImageAsBase64(url: string): Promise<string | null> {
+async function fetchImageAsBase64(url: string, maxWidth = 600, quality = 0.5): Promise<string | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
     const blob = await res.blob();
+    const imgUrl = URL.createObjectURL(blob);
+    
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+      const img = new window.Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        URL.revokeObjectURL(imgUrl);
+        resolve(dataUrl);
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(imgUrl);
+        resolve(null);
+      };
+      
+      img.src = imgUrl;
     });
   } catch {
     return null;
