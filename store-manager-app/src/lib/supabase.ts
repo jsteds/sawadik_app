@@ -197,7 +197,7 @@ export async function updateStoreSettings(
 export async function getCleaningTasks(storeId?: string): Promise<any[]> {
   let query = supabase
     .from("general_cleaning")
-    .select("*, assignee:profiles(*)")
+    .select("*, assignee:profiles!assigned_to(*)")
     .order("created_at", { ascending: false });
 
   if (storeId) {
