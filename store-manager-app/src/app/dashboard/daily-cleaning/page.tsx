@@ -12,8 +12,9 @@ import {
   deleteDailyCleaningTask,
   getTeamMembers,
   uploadGCPdfToPublic,
+  getAllStores,
 } from "@/lib/supabase";
-import type { DailyCleaningTask, Profile } from "@/lib/types";
+import type { DailyCleaningTask, Profile, Store } from "@/lib/types";
 import { compressImage } from "@/lib/imageUtils";
 import { SHIFT_OPTIONS } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import {
   Clock,
   FileText,
   Shield,
+  CheckSquare,
 } from "lucide-react";
 
 // ─── Helpers untuk PDF ────────────────────────────────────────────────────────
@@ -158,7 +160,11 @@ async function generateDailyCleaningPDFReport(
 
   const fbiLogoBase64 = await fetchImageAsBase64("/fbi_logo.png");
   if (fbiLogoBase64) {
-    doc.addImage(fbiLogoBase64, "PNG", pageWidth - margin - 35, 12, 35, 12);
+    try {
+      doc.addImage(fbiLogoBase64, "JPEG", pageWidth - margin - 35, 12, 35, 12);
+    } catch {
+      // ignore logo error
+    }
   }
 
   doc.setTextColor(30, 64, 175);
@@ -417,13 +423,274 @@ async function generateDailyCleaningPDFReport(
   return { fileName, blob: doc.output("blob") };
 }
 
+async function generateDailyCleaningAreaSummaryPDFReport(
+  stores: any[],
+  tasks: DailyCleaningTask[],
+  managerName: string,
+  reportDate: string
+): Promise<{ fileName: string; blob: Blob }> {
+  const { jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const pendingCount = tasks.length - completedCount;
+
+  // ── Header ──
+  doc.setFillColor(255, 204, 0);
+  doc.circle(0, 0, 25, "F");
+
+  doc.setFillColor(30, 64, 175);
+  for (let c = 0; c < 6; c++) {
+    for (let r = 0; r < 4; r++) {
+      if (c + r > 2) {
+        doc.circle(6 + c * 4, 6 + r * 4, 0.5, "F");
+      }
+    }
+  }
+
+  doc.setDrawColor(255, 204, 0);
+  doc.setLineWidth(1);
+  const sx = pageWidth - margin - 15;
+  const sy = 8;
+  doc.line(sx - 12, sy + 2, sx - 9, sy - 1);
+  doc.line(sx - 9, sy - 1, sx - 6, sy + 2);
+  doc.line(sx - 6, sy + 2, sx - 3, sy - 1);
+  doc.line(sx - 3, sy - 1, sx, sy + 2);
+
+  const fbiLogoBase64 = await fetchImageAsBase64("/fbi_logo.png");
+  if (fbiLogoBase64) {
+    try {
+      doc.addImage(fbiLogoBase64, "JPEG", pageWidth - margin - 35, 12, 35, 12);
+    } catch {
+      // ignore logo error
+    }
+  }
+
+  doc.setTextColor(30, 64, 175);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Daily Cleaning Area Summary Report", margin, 32);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Area Manager: ${managerName}`, margin, 38);
+  doc.text(`Tanggal Daily Cleaning: ${reportDate} • Lingkup: Seluruh Store Area`, margin, 43);
+
+  const sumStorePct = stores.reduce((acc, st) => {
+    const storeTasks = tasks.filter((t) => t.store_id === st.id);
+    const totalT = storeTasks.length;
+    const completedT = storeTasks.filter((t) => t.status === "completed").length;
+    return acc + (totalT > 0 ? (completedT / totalT) * 100 : 0);
+  }, 0);
+  const areaPercentage = stores.length > 0 ? Math.round(sumStorePct / stores.length) : 0;
+
+  // ── Summary Cards ──
+  let y = 50;
+  const cardW = (pageWidth - margin * 2 - 6) / 4;
+
+  const summaryData = [
+    { label: "Stores", value: String(stores.length), color: [71, 85, 105] as [number, number, number] },
+    { label: "Tasks", value: String(tasks.length), color: [30, 64, 175] as [number, number, number] },
+    { label: "Completed", value: String(completedCount), color: [16, 185, 129] as [number, number, number] },
+    { label: "Area Percentage", value: `${areaPercentage}%`, color: [37, 99, 235] as [number, number, number] },
+  ];
+
+  summaryData.forEach((item, i) => {
+    const x = margin + i * (cardW + 2);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, y, cardW, 18, 2, 2, "F");
+    doc.setDrawColor(...item.color);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(x, y, cardW, 18, 2, 2, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...item.color);
+    doc.text(item.value, x + cardW / 2, y + 10, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(item.label, x + cardW / 2, y + 15, { align: "center" });
+  });
+
+  y += 25;
+
+  // ── Detail Table per Store ──
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Summary Report Daily Cleaning All Stores", margin, y);
+  y += 4;
+
+  const tableRows: (string | object)[] = [];
+
+  stores.forEach((st, idx) => {
+    const storeTasks = tasks.filter((t) => t.store_id === st.id);
+    const totalT = storeTasks.length;
+    const completedT = storeTasks.filter((t) => t.status === "completed").length;
+    const pendingT = totalT - completedT;
+    const pct = totalT > 0 ? Math.round((completedT / totalT) * 100) : 0;
+    const statusLabel = totalT === 0 ? "Not Started" : completedT === totalT ? "Completed" : "Not Completed";
+
+    tableRows.push([
+      String(idx + 1),
+      st.code || "-",
+      st.name,
+      String(totalT),
+      String(completedT),
+      String(pendingT),
+      `${pct}%`,
+      statusLabel,
+    ]);
+  });
+
+  tableRows.push([
+    "",
+    "TOTAL",
+    `${stores.length} Stores / Branches`,
+    String(tasks.length),
+    String(completedCount),
+    String(pendingCount),
+    `${areaPercentage}%`,
+    areaPercentage === 100 ? "Completed" : areaPercentage === 0 ? "Not Started" : "Not Completed",
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Code", "Stores / Branches", "Total", "Completed", "Pending", "Progress", "Status"]],
+    body: tableRows as any,
+    margin: { left: margin, right: margin },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.3,
+    },
+    headStyles: {
+      fillColor: [30, 64, 175],
+      textColor: 255,
+      fontStyle: "bold",
+      fontSize: 8,
+    },
+    columnStyles: {
+      0: { cellWidth: 8, halign: "center" },
+      1: { cellWidth: 15, halign: "center" },
+      2: { cellWidth: 60 },
+      3: { cellWidth: 16, halign: "center" },
+      4: { cellWidth: 18, halign: "center" },
+      5: { cellWidth: 16, halign: "center" },
+      6: { cellWidth: 18, halign: "center" },
+      7: { cellWidth: 31, halign: "center" },
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    didParseCell: (data) => {
+      if (data.row.index === tableRows.length - 1 && data.section === "body") {
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fillColor = [241, 245, 249];
+      }
+      if (data.column.index === 7 && data.section === "body") {
+        const val = String(data.cell.raw);
+        data.cell.styles.fontStyle = "bold";
+        if (val === "Completed") {
+          data.cell.styles.textColor = [16, 185, 129];
+        } else if (val === "Not Completed") {
+          data.cell.styles.textColor = [217, 119, 6];
+        } else if (val === "Not Started") {
+          data.cell.styles.textColor = [220, 38, 38];
+        } else {
+          data.cell.styles.textColor = [107, 114, 128];
+        }
+      }
+    },
+  });
+
+  // ── Signature / Footer ──
+  const lastPageNum = doc.getNumberOfPages();
+  doc.setPage(lastPageNum);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const footerY = Math.max((doc as any).lastAutoTable?.finalY ?? 200, pageHeight - 50);
+
+  const sigY = footerY + 15 > pageHeight - 35
+    ? (() => {
+      doc.addPage();
+      return margin + 10;
+    })()
+    : footerY + 15;
+
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.line(margin, sigY, margin + 55, sigY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(30, 41, 59);
+  doc.text(managerName, margin, sigY + 5);
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Area Manager", margin, sigY + 10);
+  doc.text(`Digenerate pada: ${new Date().toLocaleString("id-ID")}`, margin, sigY + 16);
+
+  // ── Footer & Page numbers ──
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    const startY = pageHeight - 12;
+
+    doc.setDrawColor(0, 0, 204);
+    doc.setLineWidth(1);
+    doc.line(5, startY + 8, 8, startY + 2);
+    doc.line(9, startY + 8, 12, startY + 2);
+    doc.line(13, startY + 8, 16, startY + 2);
+
+    doc.setFillColor(255, 204, 0);
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 3; r++) {
+        doc.circle(20 + c * 3, startY + 3 + r * 3, 0.6, "F");
+      }
+    }
+
+    doc.setFillColor(0, 0, 204);
+    doc.ellipse(pageWidth - 40, pageHeight, 80, 15, "F");
+
+    doc.setFillColor(255, 204, 0);
+    doc.circle(pageWidth, pageHeight, 12, "F");
+    doc.setFillColor(0, 0, 204);
+    doc.circle(pageWidth, pageHeight, 6, "F");
+    doc.setFillColor(255, 255, 255);
+    for (let c = 0; c < 3; c++) {
+      for (let r = 0; r < 3; r++) {
+        doc.circle(pageWidth - 10 + c * 3, pageHeight - 6 + r * 3, 0.4, "F");
+      }
+    }
+
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Halaman ${p} dari ${totalPages}`, pageWidth - margin, pageHeight - 4, { align: "right" });
+    doc.setTextColor(148, 163, 184);
+    doc.text("Auto generated by sawadik-app", 40, pageHeight - 4);
+  }
+
+  const fileName = `DailyCleaning_Area_Summary_${reportDate.replace(/\//g, "-")}.pdf`;
+  doc.save(fileName);
+
+  return { fileName, blob: doc.output("blob") };
+}
+
 
 export default function DailyCleaningPage() {
-  const { profile, isSuperAdmin, activeStoreId } = useAuth();
+  const { profile, isSuperAdmin, isAreaManager, activeStoreId } = useAuth();
   const isManager = profile?.role === "manager" || profile?.role === "admin" || isSuperAdmin;
 
   const [tasks, setTasks] = useState<DailyCleaningTask[]>([]);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
+  const [allStores, setAllStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
 
@@ -440,18 +707,24 @@ export default function DailyCleaningPage() {
   const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
 
   const loadData = useCallback(async () => {
-    if (!effectiveStoreId && !isSuperAdmin) return;
+    if (!effectiveStoreId && !isSuperAdmin && !isAreaManager) return;
     if (isSuperAdmin && !activeStoreId) return; // Wait for activeStoreId
     setLoading(true);
-    const storeFilter = isSuperAdmin ? (activeStoreId ?? undefined) : undefined;
-    const [data, members] = await Promise.all([
+    const storeFilter = isSuperAdmin
+      ? (activeStoreId ?? undefined)
+      : isAreaManager
+      ? undefined
+      : (profile?.store_id ?? undefined);
+    const [data, members, stores] = await Promise.all([
       getDailyCleaningTasks(selectedDate, storeFilter),
-      getTeamMembers(storeFilter)
+      getTeamMembers(storeFilter),
+      isAreaManager ? getAllStores() : Promise.resolve([]),
     ]);
     setTasks(data as DailyCleaningTask[]);
     setTeamMembers(members);
+    if (isAreaManager) setAllStores(stores);
     setLoading(false);
-  }, [effectiveStoreId, isSuperAdmin, activeStoreId, selectedDate]);
+  }, [effectiveStoreId, isSuperAdmin, isAreaManager, activeStoreId, profile?.store_id, selectedDate]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -556,6 +829,207 @@ export default function DailyCleaningPage() {
   }, {} as Record<string, DailyCleaningTask[]>);
 
   const assigneeIds = Object.keys(tasksByAssignee);
+
+  if (isAreaManager) {
+    const totalAreaTasks = tasks.length;
+    const completedAreaTasks = tasks.filter((t) => t.status === "completed").length;
+    const sumStorePct = allStores.reduce((acc, st) => {
+      const storeTasks = tasks.filter((t) => t.store_id === st.id);
+      const totalT = storeTasks.length;
+      const completedT = storeTasks.filter((t) => t.status === "completed").length;
+      return acc + (totalT > 0 ? (completedT / totalT) * 100 : 0);
+    }, 0);
+    const areaPct = allStores.length > 0 ? Math.round(sumStorePct / allStores.length) : 0;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <CheckSquare className="w-6 h-6 text-blue-600" />
+              Ringkasan Daily Cleaning per-Store
+            </h2>
+            <p className="text-sm text-slate-500">
+              Pantau jumlah tugas, progres update, dan lihat laporan dari semua toko di area Anda.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-auto h-9"
+            />
+            <Button
+              onClick={async () => {
+                setGeneratingPdf(true);
+                try {
+                  await generateDailyCleaningAreaSummaryPDFReport(
+                    allStores,
+                    tasks,
+                    profile?.full_name || "Area Manager",
+                    selectedDate
+                  );
+                } catch (err) {
+                  console.error("Error generating Area PDF:", err);
+                  alert("Gagal memuat laporan PDF Area: " + (err instanceof Error ? err.message : String(err)));
+                } finally {
+                  setGeneratingPdf(false);
+                }
+              }}
+              disabled={generatingPdf || allStores.length === 0}
+              className="bg-blue-600 hover:bg-blue-700 text-white h-9 text-xs sm:text-sm gap-2 font-medium"
+            >
+              {generatingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              <span>Summary Report Area</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Area Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+            <div className="text-xs text-slate-500 font-medium">Total Toko di Area</div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{allStores.length} Cabang</div>
+          </div>
+          <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+            <div className="text-xs text-slate-500 font-medium">Total Tugas Area</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{totalAreaTasks} Tugas</div>
+          </div>
+          <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+            <div className="text-xs text-slate-500 font-medium">Selesai</div>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{completedAreaTasks} Selesai</div>
+          </div>
+          <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+            <div className="text-xs text-slate-500 font-medium">Progres Area</div>
+            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{areaPct}%</div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          </div>
+        ) : allStores.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm text-zinc-500">Tidak ada toko yang tersedia.</p>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 dark:bg-zinc-800/60 text-xs uppercase text-slate-500 font-semibold">
+                  <tr>
+                    <th className="px-6 py-4">Toko</th>
+                    <th className="px-6 py-4">Progres Update</th>
+                    <th className="px-6 py-4">Jumlah Tugas</th>
+                    <th className="px-6 py-4 text-right">Laporan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                  {allStores.map((st) => {
+                    const storeTasks = tasks.filter((t) => t.store_id === st.id);
+                    const totalTasks = storeTasks.length;
+                    const completedTasks = storeTasks.filter((t) => t.status === "completed").length;
+                    const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                    const hasReport = totalTasks > 0 && completedTasks > 0;
+
+                    return (
+                      <tr key={st.id} className="hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-800 dark:text-white">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                              {st.code || st.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-slate-900 dark:text-white">{st.name}</div>
+                              <div className="text-xs font-normal text-slate-400">Kode: {st.code || "-"}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 w-56">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 flex-1 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${pct === 100 ? "bg-emerald-500" : pct > 0 ? "bg-blue-500" : "bg-slate-300 dark:bg-zinc-700"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                              {pct}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {completedTasks} / {totalTasks}
+                            </span>
+                            <span className="text-xs text-slate-500">Tugas Selesai</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {hasReport ? (
+                            <Button
+                              size="sm"
+                              onClick={async () => {
+                                const pdfWindow = window.open("", "_blank");
+                                if (pdfWindow) {
+                                  pdfWindow.document.write("<html><head><title>Membuat Laporan Daily Cleaning...</title></head><body style='font-family:sans-serif;padding:2rem;text-align:center;'><h3>Sedang membuat laporan Daily Cleaning PDF...</h3><p>Mohon tunggu sebentar.</p></body></html>");
+                                }
+                                setGeneratingPdf(true);
+                                try {
+                                  const { blob, fileName } = await generateDailyCleaningPDFReport(
+                                    storeTasks,
+                                    st.name || "Toko",
+                                    st.code || null,
+                                    profile?.full_name || "Area Manager",
+                                    selectedDate
+                                  );
+                                  const url = URL.createObjectURL(blob);
+                                  if (pdfWindow) {
+                                    pdfWindow.location.href = url;
+                                  } else {
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.download = fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }
+                                } catch (err) {
+                                  if (pdfWindow) pdfWindow.close();
+                                  console.error("Error generating Daily PDF:", err);
+                                  alert("Gagal memuat laporan PDF: " + (err instanceof Error ? err.message : String(err)));
+                                } finally {
+                                  setGeneratingPdf(false);
+                                }
+                              }}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs gap-1.5"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Lihat Laporan</span>
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Belum ada laporan</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

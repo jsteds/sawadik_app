@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Loader2, Plus, X, Settings2, Eye, ShieldAlert, Check } from "lucide-react";
 
 export default function StoreSettings() {
-  const { profile, isSuperAdmin, activeStoreId, allStores, refreshProfile } = useAuth();
+  const { profile, isSuperAdmin, isAreaManager, activeStoreId, allStores, refreshProfile } = useAuth();
   
   const [customPositions, setCustomPositions] = useState<string[]>([]);
   const [newPosition, setNewPosition] = useState("");
@@ -73,10 +73,16 @@ export default function StoreSettings() {
     setSaving(false);
   };
 
-  if (!profile || (profile.role === "staff" && !isSuperAdmin)) {
+  if (!profile || isAreaManager || (profile.role === "staff" && !isSuperAdmin)) {
     return (
-      <div className="flex items-center justify-center h-64 text-zinc-400">
-        Anda tidak memiliki akses ke halaman ini.
+      <div className="flex flex-col items-center justify-center h-64 text-zinc-400 gap-2 border border-zinc-800/80 rounded-2xl bg-zinc-900/40 p-8 text-center max-w-xl mx-auto">
+        <h3 className="text-lg font-semibold text-white">Pengaturan Toko Tidak Berlaku</h3>
+        <p className="text-sm text-zinc-400">
+          Sebagai <strong>Area Manager</strong>, Anda memantau seluruh cabang sehingga tidak terikat pada pengaturan visibilitas toko tunggal.
+        </p>
+        <p className="text-xs text-zinc-500 mt-2">
+          Silakan klik <strong>Avatar Anda</strong> di sudut kanan atas untuk mengelola Profil, NIK, Email, dan Kata Sandi.
+        </p>
       </div>
     );
   }

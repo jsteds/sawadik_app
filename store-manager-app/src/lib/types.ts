@@ -17,7 +17,7 @@ export interface Profile {
   email: string;
   full_name: string | null;
   nik: string | null;
-  role: "super_admin" | "admin" | "manager" | "staff";
+  role: "super_admin" | "area_manager" | "admin" | "manager" | "staff";
   position: string | null;       // jabatan: "Kasir Senior", "Staff Gudang", dll
   status: "aktif" | "cuti" | "resign";
   store_id: string | null;
@@ -25,6 +25,7 @@ export interface Profile {
   avatar_url: string | null;
   contract_end_date: string | null;
   incharge_start_date: string | null;
+  managed_store_ids: string[] | null; // Area Manager: store IDs in scope
   created_at: string;
   // joined from stores table (optional)
   stores?: Store | null;
@@ -39,13 +40,14 @@ export type MemberFormData = {
   nik: string;
   email: string;
   position: string;
-  role: "super_admin" | "manager" | "staff";
+  role: "super_admin" | "area_manager" | "manager" | "staff";
   status: "aktif" | "cuti" | "resign";
   join_date: string;
   avatar_url?: string;
 };
 
 export const POSITION_OPTIONS = [
+  "Area Manager",
   "Store Manager",
   "Asst. Store Manager",
   "Chatime Staff",
@@ -54,6 +56,7 @@ export const POSITION_OPTIONS = [
 
 export const ROLE_LABELS: Record<Profile["role"], string> = {
   super_admin: "Super Admin",
+  area_manager: "Area Manager",
   admin: "Admin",
   manager: "Manager",
   staff: "Staff",
@@ -141,7 +144,7 @@ export interface Document {
   created_at: string;
   // joined
   uploader?: { full_name: string | null } | null;
-  store?: { name: string } | null;
+  store?: { name: string; code?: string } | null;
 }
 
 export const DOCUMENT_CATEGORIES = [
@@ -176,3 +179,55 @@ export interface Schedule {
   shift_code?: ShiftCode | null;
   profile?: Profile | null;
 }
+
+// ─── Google Maps Reviews ────────────────────────────────────────────────────────
+
+export interface StoreGoogleMaps {
+  id: string;
+  store_id: string;
+  google_maps_url: string;
+  place_id: string | null;
+  place_name: string | null;
+  last_scraped_at: string | null;
+  created_at: string;
+}
+
+export interface GoogleMapsReview {
+  id: string;
+  store_id: string;
+  reviewer_name: string | null;
+  review_text: string | null;
+  rating: number;
+  review_date: string | null;
+  sentiment: "positive" | "negative" | "neutral" | null;
+  sentiment_score: number | null;
+  scraped_at: string;
+  google_review_id: string | null;
+}
+
+export interface ReviewSentimentSummary {
+  id: string;
+  store_id: string;
+  period_start: string;
+  period_end: string;
+  total_reviews: number;
+  positive_count: number;
+  negative_count: number;
+  neutral_count: number;
+  average_rating: number | null;
+  created_at: string;
+}
+
+export type SentimentType = "positive" | "negative" | "neutral";
+
+export const SENTIMENT_LABELS: Record<SentimentType, string> = {
+  positive: "Positif",
+  negative: "Negatif",
+  neutral: "Netral",
+};
+
+export const SENTIMENT_COLORS: Record<SentimentType, string> = {
+  positive: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  negative: "bg-red-500/20 text-red-400 border-red-500/30",
+  neutral: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+};

@@ -18,8 +18,9 @@ interface AuthContextValue {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  // Super Admin features
+  // Super Admin & Area Manager features
   isSuperAdmin: boolean;
+  isAreaManager: boolean;
   activeStoreId: string | null;
   setActiveStore: (storeId: string | null) => void;
   allStores: Store[];
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
   refreshProfile: async () => {},
   isSuperAdmin: false,
+  isAreaManager: false,
   activeStoreId: null,
   setActiveStore: () => {},
   allStores: [],
@@ -42,11 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  // Super Admin state
+  // Super Admin & Area Manager state
   const [allStores, setAllStores] = useState<Store[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
 
   const isSuperAdmin = profile?.role === "super_admin";
+  const isAreaManager = profile?.role === "area_manager";
 
   const refreshProfile = useCallback(async () => {
     const p = await getCurrentProfile();
@@ -60,7 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order("name");
       if (stores && stores.length > 0) {
         setAllStores(stores as Store[]);
-        // Auto-select first store if none selected yet
+        setActiveStoreId((prev) => prev ?? stores[0].id);
+      }
+    } else if (p?.role === "area_manager") {
+      // Fetch only stores in managed_store_ids scope (if set), otherwise all stores
+      let query = supabase.from("stores").select("*").order("name");
+      if (p.managed_store_ids && p.managed_store_ids.length > 0) {
+        query = query.in("id", p.managed_store_ids);
+      }
+      const { data: stores } = await query;
+      if (stores && stores.length > 0) {
+        setAllStores(stores as Store[]);
         setActiveStoreId((prev) => prev ?? stores[0].id);
       }
     } else if (p?.store_id) {
@@ -117,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         refreshProfile,
         isSuperAdmin,
+        isAreaManager,
         activeStoreId,
         setActiveStore,
         allStores,

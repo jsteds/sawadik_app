@@ -549,7 +549,7 @@ export async function deleteDailyCleaningTask(
 export async function getDocuments(storeFilter?: string): Promise<any[]> {
   let query = supabase
     .from("documents")
-    .select("*, uploader:profiles(full_name), store:stores(name)")
+    .select("*, uploader:profiles(full_name), store:stores(name, code)")
     .order("created_at", { ascending: false });
 
   if (storeFilter) {
@@ -662,3 +662,46 @@ export async function uploadGCPdfToPublic(
 
   return { error: null };
 }
+
+/** Update data profil pribadi & kredensial auth (email / password) */
+export async function updateMyProfile(
+  profileId: string,
+  updates: {
+    full_name?: string;
+    nik?: string;
+    email?: string;
+    password?: string;
+  }
+): Promise<{ error: string | null }> {
+  // 1. Update auth credentials jika ada perubahan email atau password
+  const authPayload: { email?: string; password?: string } = {};
+  if (updates.email) authPayload.email = updates.email;
+  if (updates.password) authPayload.password = updates.password;
+
+  if (Object.keys(authPayload).length > 0) {
+    const { error: authError } = await supabase.auth.updateUser(authPayload);
+    if (authError) {
+      return { error: `Gagal memperbarui autentikasi: ${authError.message}` };
+    }
+  }
+
+  // 2. Update data profil di tabel profiles
+  const profilePayload: Record<string, any> = {};
+  if (updates.full_name !== undefined) profilePayload.full_name = updates.full_name;
+  if (updates.nik !== undefined) profilePayload.nik = updates.nik;
+  if (updates.email !== undefined) profilePayload.email = updates.email;
+
+  if (Object.keys(profilePayload).length > 0) {
+    const { error: dbError } = await supabase
+      .from("profiles")
+      .update(profilePayload)
+      .eq("id", profileId);
+
+    if (dbError) {
+      return { error: `Gagal memperbarui profil: ${dbError.message}` };
+    }
+  }
+
+  return { error: null };
+}
+

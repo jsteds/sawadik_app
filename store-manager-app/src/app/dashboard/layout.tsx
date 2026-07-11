@@ -15,19 +15,23 @@ import {
   CalendarDays,
   ChevronDown,
   Shield,
+  MessageSquareText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import Onboarding from "@/components/Onboarding";
+import AreaManagerSetup from "@/components/AreaManagerSetup";
 import BottomNav from "@/components/BottomNav";
+import ProfileModal from "@/components/dashboard/ProfileModal";
 
 
 // ─── Header (needs auth context) ──────────────────────────────────────────────
 function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, signOut, isSuperAdmin, activeStoreId, setActiveStore, allStores } = useAuth();
+  const { profile, signOut, isSuperAdmin, isAreaManager, activeStoreId, setActiveStore, allStores } = useAuth();
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
@@ -36,6 +40,7 @@ function Header() {
     { name: "Dokumen", href: "/dashboard/documents" },
     { name: "Daily Cleaning", href: "/dashboard/daily-cleaning" },
     { name: "General Cleaning", href: "/dashboard/cleaning" },
+    { name: "Ulasan", href: "/dashboard/reviews" },
   ];
 
   const currentPage =
@@ -59,7 +64,7 @@ function Header() {
           <img src="/logo.png" alt="SawadikApp Logo" className="w-8 h-8 rounded-lg object-cover" />
         </Link>
         <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-          {currentPage}
+          {isAreaManager ? "Area Manager Overview" : currentPage}
         </h1>
       </div>
       <div className="flex items-center gap-3">
@@ -105,7 +110,7 @@ function Header() {
         )}
 
         {/* Store name for non-super-admin */}
-        {!isSuperAdmin && profile?.stores && (
+        {!isSuperAdmin && !isAreaManager && profile?.stores && (
           <span className="hidden sm:block text-xs text-gray-400 dark:text-gray-500">
             {profile.stores.name}
           </span>
@@ -119,9 +124,19 @@ function Header() {
           </div>
         )}
 
-        <Link href="/dashboard/settings" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
-          <Settings className="w-5 h-5" />
-        </Link>
+        {/* Area Manager Badge */}
+        {isAreaManager && (
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-300/50 dark:border-amber-700/50 shadow-sm">
+            <Shield className="w-3 h-3" />
+            Area Manager
+          </div>
+        )}
+
+        {!isAreaManager && (
+          <Link href="/dashboard/settings" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" title="Pengaturan Toko">
+            <Settings className="w-5 h-5" />
+          </Link>
+        )}
         <button 
           onClick={async () => {
             await signOut();
@@ -132,17 +147,25 @@ function Header() {
         >
           <LogOut className="w-5 h-5" />
         </button>
-        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm">
+        <button
+          onClick={() => setShowProfileModal(true)}
+          className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer"
+          title="Pengaturan Profil Saya"
+        >
           {initials}
-        </div>
+        </button>
       </div>
+
+      {showProfileModal && (
+        <ProfileModal onClose={() => setShowProfileModal(false)} />
+      )}
     </header>
   );
 }
 
 // ─── Inner Layout (handles auth & onboarding check) ──────────────────────────
 function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
-  const { session, profile, loading, signOut, isSuperAdmin } = useAuth();
+  const { session, profile, loading, signOut, isSuperAdmin, isAreaManager, refreshProfile } = useAuth();
   const router = useRouter();
 
   // Redirect if user is not logged in
@@ -169,9 +192,9 @@ function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  // Super Admin doesn't need onboarding — they select stores via dropdown
+  // Super Admin & Area Manager don't need onboarding — they view multi-store overview
   // Regular user: Logged in but profile is null (or store_id is null) => show onboarding
-  if (!isSuperAdmin && (!profile || !profile.store_id)) {
+  if (!isSuperAdmin && !isAreaManager && (!profile || !profile.store_id)) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
         {/* Simple header with logout for onboarding users */}
@@ -193,6 +216,33 @@ function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
           <Onboarding />
+        </main>
+      </div>
+    );
+  }
+
+  // Area Manager via Google OAuth — needs to complete store scope + profile setup
+  if (isAreaManager && profile && (!profile.managed_store_ids || profile.managed_store_ids.length === 0)) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+        <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-8 bg-zinc-900/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2 font-bold text-xl text-amber-400">
+            <img src="/logo.png" alt="SawadikApp Logo" className="w-8 h-8 rounded-lg object-cover" />
+            <span>SawadikApp</span>
+          </div>
+          <button
+            onClick={async () => {
+              await signOut();
+              router.push("/login");
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all border border-red-500/20"
+          >
+            <LogOut className="w-4 h-4" />
+            Keluar
+          </button>
+        </header>
+        <main className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+          <AreaManagerSetup profile={profile} onComplete={refreshProfile} />
         </main>
       </div>
     );

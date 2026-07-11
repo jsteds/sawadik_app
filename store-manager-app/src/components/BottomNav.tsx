@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -9,20 +10,33 @@ import {
   CheckSquare,
   Sparkles,
   CalendarDays,
+  MessageSquareText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { isAreaManager } = useAuth();
 
-  const navItems = [
+  const standardNavItems = [
     { name: "Home", href: "/dashboard", icon: LayoutDashboard },
     { name: "Team", href: "/dashboard/team", icon: Users },
     { name: "Jadwal", href: "/dashboard/schedule", icon: CalendarDays },
     { name: "Dokumen", href: "/dashboard/documents", icon: FileText },
     { name: "Daily", href: "/dashboard/daily-cleaning", icon: CheckSquare },
     { name: "General", href: "/dashboard/cleaning", icon: Sparkles },
+    { name: "Ulasan", href: "/dashboard/reviews", icon: MessageSquareText },
   ];
+
+  const areaManagerNavItems = [
+    { name: "Overview Area", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Jadwal Area", href: "/dashboard/schedule", icon: CalendarDays },
+    { name: "Dokumen", href: "/dashboard/documents", icon: FileText },
+    { name: "Daily Cleaning", href: "/dashboard/daily-cleaning", icon: CheckSquare },
+    { name: "General Cleaning", href: "/dashboard/cleaning", icon: Sparkles },
+  ];
+
+  const navItems = isAreaManager ? areaManagerNavItems : standardNavItems;
 
   return (
     <div className="fixed bottom-0 left-0 w-full z-50 pb-safe pointer-events-none">

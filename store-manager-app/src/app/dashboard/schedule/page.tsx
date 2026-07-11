@@ -40,10 +40,10 @@ function toInputDate(date: Date) {
 }
 
 export default function SchedulePage() {
-  const { profile } = useAuth();
+  const { profile, isAreaManager } = useAuth();
   
-  // Tab State
-  const [activeTab, setActiveTab] = useState<"my_team" | "area">("my_team");
+  // Tab State - default to "area" for Area Manager
+  const [activeTab, setActiveTab] = useState<"my_team" | "area">(isAreaManager ? "area" : "my_team");
   
   // Area Store Selection State
   const [allStores, setAllStores] = useState<{ id: string; name: string; code: string }[]>([]);
@@ -70,10 +70,10 @@ export default function SchedulePage() {
         setSelectedStoreId(stores[0].id);
       }
     }
-    if (activeTab === "area") {
+    if (activeTab === "area" || isAreaManager) {
       fetchStores();
     }
-  }, [activeTab]);
+  }, [activeTab, isAreaManager]);
 
   useEffect(() => {
     async function loadData() {
@@ -81,7 +81,7 @@ export default function SchedulePage() {
       let currentStoreId = profile?.store_id;
       let currentStoreCode = profile?.stores?.code;
 
-      if (activeTab === "area") {
+      if (activeTab === "area" || isAreaManager) {
         const selectedStore = allStores.find(s => s.id === selectedStoreId);
         currentStoreId = selectedStore?.id;
         currentStoreCode = selectedStore?.code;
@@ -120,7 +120,7 @@ export default function SchedulePage() {
     }
 
     loadData();
-  }, [targetDate, profile, activeTab, selectedStoreId, allStores]);
+  }, [targetDate, profile, activeTab, selectedStoreId, allStores, isAreaManager]);
 
   // --- Derived State & Calculations ---
   const targetIso = toInputDate(targetDate);
@@ -181,37 +181,39 @@ export default function SchedulePage() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Jadwal & Roster</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Review jadwal kerja dan karyawan incharge</p>
         </div>
-        <div className="flex flex-col gap-2 w-full sm:w-auto">
-          {/* TABS */}
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-            <button
-              onClick={() => setActiveTab("my_team")}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                activeTab === "my_team" 
-                  ? "bg-white dark:bg-zinc-700 text-blue-600 shadow-sm" 
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              My Team
-            </button>
-            <button
-              onClick={() => setActiveTab("area")}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                activeTab === "area" 
-                  ? "bg-white dark:bg-zinc-700 text-blue-600 shadow-sm" 
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              Area
-            </button>
-          </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          {/* TABS (Disembunyikan untuk Area Manager karena seluruh toko adalah wilayahnya) */}
+          {!isAreaManager && (
+            <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab("my_team")}
+                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === "my_team" 
+                    ? "bg-white dark:bg-zinc-700 text-blue-600 shadow-sm" 
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                }`}
+              >
+                My Team
+              </button>
+              <button
+                onClick={() => setActiveTab("area")}
+                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === "area" 
+                    ? "bg-white dark:bg-zinc-700 text-blue-600 shadow-sm" 
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                }`}
+              >
+                Area
+              </button>
+            </div>
+          )}
           
           <div className="flex gap-2 w-full sm:w-auto">
-            {activeTab === "area" && (
+            {(activeTab === "area" || isAreaManager) && (
               <select
                 value={selectedStoreId}
                 onChange={(e) => setSelectedStoreId(e.target.value)}
-                className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto bg-white"
+                className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto bg-white dark:text-white font-medium text-sm"
               >
                 {allStores.map(store => (
                   <option key={store.id} value={store.id}>
@@ -224,7 +226,7 @@ export default function SchedulePage() {
               type="date"
               value={targetIso}
               onChange={(e) => setTargetDate(new Date(e.target.value))}
-              className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto"
+              className="border px-3 py-2 rounded-md shadow-sm dark:bg-zinc-800 dark:border-zinc-700 w-full sm:w-auto text-sm"
             />
           </div>
         </div>
@@ -408,11 +410,16 @@ export default function SchedulePage() {
           
           {/* Incharge Today */}
           <div className="bg-white dark:bg-zinc-900 border rounded-xl shadow-sm">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <CalendarDays className="w-4 h-4 text-emerald-500" />
                 Incharge Hari Ini
               </h2>
+              {isAreaManager && (
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 rounded-full">
+                  {allStores.find(s => s.id === selectedStoreId)?.name || "Pilih Store"}
+                </span>
+              )}
             </div>
             <div className="p-4 space-y-3">
               {inchargeTodayProfiles.map(p => {

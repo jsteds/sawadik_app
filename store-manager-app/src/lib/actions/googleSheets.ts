@@ -104,6 +104,7 @@ export async function getMasterScheduleFromSheet(storeId: string, storeCode: str
       avatar_url: null,
       contract_end_date: row[7] || null, // Kontrak/Status (Kolom H/7)
       incharge_start_date: row[6] || null, // Incharge (Kolom G/6)
+      managed_store_ids: null,
       created_at: new Date().toISOString(),
     };
     profiles.push(profile);

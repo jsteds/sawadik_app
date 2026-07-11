@@ -4,10 +4,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Users, FileText, CheckCircle, ChevronDown, ChevronUp, Clock, CalendarDays } from "lucide-react";
+import AreaOverviewDashboard from "@/components/dashboard/AreaOverviewDashboard";
 
 export default function DashboardPage() {
-  const { profile, isSuperAdmin, activeStoreId } = useAuth();
-  
+  const { profile, isSuperAdmin, isAreaManager, activeStoreId } = useAuth();
+
+  if (isAreaManager) {
+    return <AreaOverviewDashboard />;
+  }
+
   const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
   const [stats, setStats] = useState({
     totalKaryawan: 0,
@@ -24,6 +29,15 @@ export default function DashboardPage() {
 
   // Accordion state
   const [expandedSection, setExpandedSection] = useState<string>("status");
+  const [greeting, setGreeting] = useState<string>("Selamat datang");
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 4 && hour < 11) setGreeting("Selamat pagi");
+    else if (hour >= 11 && hour < 15) setGreeting("Selamat siang");
+    else if (hour >= 15 && hour < 18.5) setGreeting("Selamat sore");
+    else setGreeting("Selamat malam");
+  }, []);
 
   useEffect(() => {
     if (!effectiveStoreId && !isSuperAdmin) return;
@@ -142,7 +156,7 @@ export default function DashboardPage() {
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6 pt-4 px-2">
         <div>
           <h1 className="text-4xl font-normal text-[#1E293B]">
-            Selamat datang, <span className="font-semibold">{profile?.full_name?.split(" ")[0] || "User"}</span>
+            {greeting}, <span className="font-semibold">{profile?.full_name?.split(" ")[0] || "User"}</span>!
           </h1>
           
           <div className="flex flex-wrap gap-4 mt-6">

@@ -27,6 +27,9 @@ import {
   X,
   AlertTriangle,
   ImageIcon,
+  Store,
+  User,
+  Shield,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -220,11 +223,12 @@ function UploadModal({ onClose, onSuccess, storeId, uploadedBy }: UploadModalPro
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DocumentsPage() {
-  const { profile, isSuperAdmin, activeStoreId } = useAuth();
+  const { profile, isSuperAdmin, isAreaManager, activeStoreId, allStores } = useAuth();
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [selectedStoreFilter, setSelectedStoreFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"internal" | "public">("internal");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -236,27 +240,38 @@ export default function DocumentsPage() {
     if (!profile) return;
     if (isSuperAdmin && !activeStoreId) return;
     setLoading(true);
-    const storeFilter = isSuperAdmin ? (activeStoreId ?? undefined) : undefined;
+    const storeFilter = isSuperAdmin
+      ? (activeStoreId ?? undefined)
+      : isAreaManager
+      ? undefined
+      : (profile?.store_id ?? undefined);
     const data = await getDocuments(storeFilter);
     setDocs(data as Document[]);
     setLoading(false);
-  }, [profile, isSuperAdmin, activeStoreId]);
+  }, [profile, isSuperAdmin, isAreaManager, activeStoreId]);
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
   const filteredDocs = docs.filter((doc) => {
-    // 1. Tab Filter
-    if (activeTab === "internal" && doc.is_public) return false;
-    if (activeTab === "public" && !doc.is_public) return false;
+    // 1. Role & Tab Filter
+    if (isAreaManager) {
+      if (!doc.is_public) return false;
+      if (selectedStoreFilter !== "all" && doc.store_id !== selectedStoreFilter) return false;
+    } else {
+      if (activeTab === "internal" && doc.is_public) return false;
+      if (activeTab === "public" && !doc.is_public) return false;
+    }
 
     // 2. Search Filter
     const matchSearch =
       doc.title.toLowerCase().includes(search.toLowerCase()) ||
-      doc.category.toLowerCase().includes(search.toLowerCase());
-      
+      doc.category.toLowerCase().includes(search.toLowerCase()) ||
+      (doc.store?.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (doc.uploader?.full_name || "").toLowerCase().includes(search.toLowerCase());
+
     // 3. Category Filter
     const matchCat = categoryFilter === "all" || doc.category === categoryFilter;
-    
+
     return matchSearch && matchCat;
   });
 
@@ -292,42 +307,74 @@ export default function DocumentsPage() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-zinc-800">
-        <button
-          onClick={() => setActiveTab("internal")}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "internal"
-              ? "border-orange-600 text-orange-600"
-              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          Dokumen Internal
-        </button>
-        <button
-          onClick={() => setActiveTab("public")}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "public"
-              ? "border-orange-600 text-orange-600"
-              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          Dokumen Publik
-        </button>
-      </div>
+      {/* Tabs or Area Manager Info */}
+      {isAreaManager ? (
+        <div className="flex items-center justify-between bg-amber-50/60 dark:bg-amber-900/10 border border-amber-200/80 dark:border-amber-800/50 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+                Dokumen Publik Semua Store
+              </p>
+              <p className="text-xs text-amber-700/80 dark:text-amber-400/80">
+                Area Manager hanya dapat mengakses dokumen yang dibagikan secara publik oleh tiap store.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex border-b border-slate-200 dark:border-zinc-800">
+          <button
+            onClick={() => setActiveTab("internal")}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "internal"
+                ? "border-orange-600 text-orange-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            Dokumen Internal
+          </button>
+          <button
+            onClick={() => setActiveTab("public")}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "public"
+                ? "border-orange-600 text-orange-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            Dokumen Publik
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             type="search"
-            placeholder="Cari nama dokumen..."
+            placeholder="Cari nama dokumen, toko, peng-upload..."
             className="pl-9 bg-white dark:bg-zinc-900"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+
+        {isAreaManager && (
+          <select
+            value={selectedStoreFilter}
+            onChange={(e) => setSelectedStoreFilter(e.target.value)}
+            className="border border-zinc-200 dark:border-zinc-800 px-3 py-2 rounded-lg text-sm bg-white dark:bg-zinc-900 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          >
+            <option value="all">Semua Store</option>
+            {allStores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} {s.code ? `(${s.code})` : ""}
+              </option>
+            ))}
+          </select>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {[{ value: "all", label: "Semua" }, ...DOCUMENT_CATEGORIES].map((c) => (
             <button
@@ -356,7 +403,7 @@ export default function DocumentsPage() {
             <FileText className="w-10 h-10 text-slate-200 dark:text-zinc-700 mx-auto" />
             <p className="text-sm text-slate-500">
               {docs.length === 0
-                ? "Belum ada dokumen. Upload dokumen pertama!"
+                ? "Belum ada dokumen yang tersedia."
                 : "Tidak ada dokumen yang cocok dengan pencarian."}
             </p>
             {isManager && docs.length === 0 && (
@@ -374,6 +421,10 @@ export default function DocumentsPage() {
             <TableHeader>
               <TableRow className="border-zinc-100 dark:border-zinc-800">
                 <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nama Dokumen</TableHead>
+                {(isAreaManager || activeTab === "public") && (
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Store Pemilik</TableHead>
+                )}
+                <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Peng-upload</TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Kategori</TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Diupload</TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Ukuran</TableHead>
@@ -391,17 +442,32 @@ export default function DocumentsPage() {
                       {getFileIcon(doc.file_url)}
                       <div className="min-w-0">
                         <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[240px]">{doc.title}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          {doc.uploader?.full_name && <span>{doc.uploader.full_name}</span>}
-                          {activeTab === "public" && doc.store?.name && (
-                            <>
-                              <span>•</span>
-                              <span className="font-medium">{doc.store.name}</span>
-                            </>
-                          )}
-                        </div>
                       </div>
                     </div>
+                  </TableCell>
+                  {(isAreaManager || activeTab === "public") && (
+                    <TableCell>
+                      {doc.store?.name ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium text-xs border border-blue-200/60 dark:border-blue-800">
+                          <Store className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate max-w-[160px]">
+                            {doc.store.name} {doc.store.code ? `(${doc.store.code})` : ""}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    {doc.uploader?.full_name ? (
+                      <div className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300 font-medium">
+                        <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <span className="truncate max-w-[150px]">{doc.uploader.full_name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">Sistem</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getCategoryColor(doc.category)}`}>
