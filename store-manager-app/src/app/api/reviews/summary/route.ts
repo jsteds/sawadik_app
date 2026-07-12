@@ -112,10 +112,31 @@ export async function GET(request: NextRequest) {
       .eq("store_id", store_id)
       .single();
 
+    // Fetch SerpApi quota
+    let serpapi_quota = null;
+    const serpApiKey = process.env.SERPAPI_API_KEY;
+    if (serpApiKey) {
+      try {
+        const accRes = await fetch(`https://serpapi.com/account.json?api_key=${serpApiKey}`);
+        if (accRes.ok) {
+          const accData = await accRes.json();
+          if (accData && accData.plan_searches_left !== undefined) {
+            serpapi_quota = {
+              total_searches_left: accData.total_searches_left ?? accData.plan_searches_left,
+              searches_per_month: accData.searches_per_month
+            };
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch serpapi quota", e);
+      }
+    }
+
     return Response.json({
       reviews: reviews || [],
       summary,
       maps_config: mapsConfig || null,
+      serpapi_quota,
       pagination: {
         page,
         limit,

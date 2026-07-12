@@ -705,3 +705,117 @@ export async function updateMyProfile(
   return { error: null };
 }
 
+// ─── Stock Opname ───────────────────────────────────────────────────────────────
+
+export async function getStockOpnameSessions(storeId?: string): Promise<any[]> {
+  let query = supabase
+    .from("stock_opname_sessions")
+    .select("*, started_by_profile:profiles!started_by(full_name)")
+    .order("created_at", { ascending: false });
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("getStockOpnameSessions error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createStockOpnameSession(storeId: string, title: string, startedBy: string): Promise<{ data: any | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from("stock_opname_sessions")
+    .insert({ store_id: storeId, title, started_by: startedBy })
+    .select()
+    .single();
+
+  return { data, error: error ? error.message : null };
+}
+
+export async function getStockOpnameItems(sessionId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("stock_opname_items")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("item_name", { ascending: true });
+
+  if (error) {
+    console.error("getStockOpnameItems error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function insertStockOpnameItems(items: any[]): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("stock_opname_items")
+    .insert(items);
+  return { error: error ? error.message : null };
+}
+
+export async function getStockOpnameLocations(sessionId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("stock_opname_locations")
+    .select("*, created_by_profile:profiles!created_by(full_name)")
+    .eq("session_id", sessionId)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("getStockOpnameLocations error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createStockOpnameLocation(sessionId: string, name: string, createdBy: string): Promise<{ data: any | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from("stock_opname_locations")
+    .insert({ session_id: sessionId, name, created_by: createdBy })
+    .select()
+    .single();
+
+  return { data, error: error ? error.message : null };
+}
+
+export async function getStockOpnameCounts(sessionId: string, locationId?: string): Promise<any[]> {
+  let query = supabase
+    .from("stock_opname_counts")
+    .select("*, item:stock_opname_items!inner(*), counted_by_profile:profiles!counted_by(full_name)")
+    .eq("item.session_id", sessionId);
+
+  if (locationId) {
+    query = query.eq("location_id", locationId);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("getStockOpnameCounts error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function saveStockOpnameCount(locationId: string, itemId: string, qty: number, countedBy: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("stock_opname_counts")
+    .upsert({
+      location_id: locationId,
+      item_id: itemId,
+      qty,
+      counted_by: countedBy,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "location_id, item_id" });
+
+  return { error: error ? error.message : null };
+}
+
+export async function updateStockOpnameSessionStatus(sessionId: string, status: "active" | "completed" | "uploaded"): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("stock_opname_sessions")
+    .update({ status })
+    .eq("id", sessionId);
+  return { error: error ? error.message : null };
+}

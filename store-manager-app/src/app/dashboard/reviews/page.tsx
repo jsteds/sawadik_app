@@ -42,23 +42,23 @@ function SentimentBadge({ sentiment }: { sentiment: SentimentType | null }) {
     positive: {
       icon: TrendingUp,
       label: "Positif",
-      bg: "bg-emerald-100 dark:bg-emerald-500/20",
-      text: "text-emerald-700 dark:text-emerald-400",
-      border: "border-emerald-200 dark:border-emerald-500/30",
+      bg: "bg-emerald-100",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
     },
     negative: {
       icon: TrendingDown,
       label: "Negatif",
-      bg: "bg-red-100 dark:bg-red-500/20",
-      text: "text-red-700 dark:text-red-400",
-      border: "border-red-200 dark:border-red-500/30",
+      bg: "bg-red-100",
+      text: "text-red-700",
+      border: "border-red-200",
     },
     neutral: {
       icon: Minus,
       label: "Netral",
-      bg: "bg-amber-100 dark:bg-amber-500/20",
-      text: "text-amber-700 dark:text-amber-400",
-      border: "border-amber-200 dark:border-amber-500/30",
+      bg: "bg-amber-100",
+      text: "text-amber-700",
+      border: "border-amber-200",
     },
   };
 
@@ -85,7 +85,7 @@ function StarRating({ rating }: { rating: number }) {
           className={`w-3.5 h-3.5 ${
             i <= rating
               ? "fill-amber-400 text-amber-400"
-              : "fill-slate-200 text-slate-200 dark:fill-slate-600 dark:text-slate-600"
+              : "fill-slate-200 text-slate-200"
           }`}
         />
       ))}
@@ -138,7 +138,7 @@ function DonutChart({
           fill="transparent"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-slate-100 dark:text-slate-700"
+          className="text-slate-100"
         />
         {/* Positive (green) */}
         {posArc > 0 && (
@@ -187,7 +187,7 @@ function DonutChart({
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-light text-slate-800 dark:text-slate-200">
+        <span className="text-3xl font-light text-slate-800">
           {total}
         </span>
         <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mt-0.5">
@@ -200,8 +200,8 @@ function DonutChart({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ReviewsPage() {
-  const { profile, isSuperAdmin, activeStoreId } = useAuth();
-  const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
+  const { profile, isSuperAdmin, isAreaManager, activeStoreId } = useAuth();
+  const effectiveStoreId = (isSuperAdmin || isAreaManager) ? activeStoreId : profile?.store_id;
 
   // State
   const [reviews, setReviews] = useState<GoogleMapsReview[]>([]);
@@ -216,6 +216,10 @@ export default function ReviewsPage() {
     google_maps_url: string;
     place_name: string | null;
     last_scraped_at: string | null;
+  } | null>(null);
+  const [serpApiQuota, setSerpApiQuota] = useState<{
+    total_searches_left: number;
+    searches_per_month: number;
   } | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -266,6 +270,7 @@ export default function ReviewsPage() {
           setReviews(data.reviews || []);
           setSummary(data.summary || summary);
           setMapsConfig(data.maps_config || null);
+          setSerpApiQuota(data.serpapi_quota || null);
           setPagination(data.pagination || pagination);
           if (data.maps_config?.google_maps_url) {
             setGoogleMapsUrl(data.maps_config.google_maps_url);
@@ -414,6 +419,12 @@ export default function ReviewsPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          {serpApiQuota && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 border border-slate-200/50 text-xs text-slate-600 shadow-sm">
+              <span className={`w-2 h-2 rounded-full ${serpApiQuota.total_searches_left > 50 ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+              Kuota Scrape: <strong className="text-slate-800">{serpApiQuota.total_searches_left}</strong> / {serpApiQuota.searches_per_month}
+            </div>
+          )}
           {mapsConfig?.google_maps_url && (
             <a
               href={mapsConfig.google_maps_url}

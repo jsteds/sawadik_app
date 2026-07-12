@@ -61,19 +61,19 @@ function DeleteConfirmModal({ member, onConfirm, onCancel, loading }: {
   loading: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
-      <div className="rounded-2xl border border-white/10 p-6 w-full max-w-sm" style={{ background: "#0f172a" }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
+      <div className="glass-panel w-full max-w-sm p-6">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-            <Trash2 className="w-5 h-5 text-red-400" />
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <Trash2 className="w-5 h-5 text-red-600" />
           </div>
-          <h3 className="text-white font-bold text-lg">Hapus Anggota?</h3>
+          <h3 className="text-slate-800 font-bold text-lg">Hapus Anggota?</h3>
         </div>
-        <p className="text-slate-400 text-sm mb-6">
-          Hapus <span className="text-white font-semibold">{member.full_name}</span> dari tim? Tindakan ini tidak bisa dibatalkan.
+        <p className="text-slate-500 text-sm mb-6">
+          Hapus <span className="text-slate-800 font-semibold">{member.full_name}</span> dari tim? Tindakan ini tidak bisa dibatalkan.
         </p>
         <div className="flex gap-3">
-          <button onClick={onCancel} disabled={loading} className="flex-1 py-2 rounded-xl border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/5 transition-colors disabled:opacity-50">
+          <button onClick={onCancel} disabled={loading} className="flex-1 py-2 rounded-xl border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors disabled:opacity-50">
             Batal
           </button>
           <button onClick={onConfirm} disabled={loading} className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -123,25 +123,25 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
 
   const field = (label: string, key: keyof MemberFormData, type = "text", required = true) => (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}{required && " *"}</label>
+      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{label}{required && " *"}</label>
       <input
         type={type}
         required={required}
         value={form[key] as string}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
+        className="w-full bg-white/50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
         placeholder={`Masukkan ${label.toLowerCase()}`}
       />
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-      <div className="rounded-2xl border border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ background: "linear-gradient(160deg, #0f172a, #1a2540)" }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
+      <div className="glass-panel w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h2 className="text-white font-black text-xl">{isEdit ? "Edit Anggota" : "Tambah Anggota Baru"}</h2>
-          <button onClick={onClose} disabled={loading} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+          <h2 className="text-slate-800 font-black text-xl">{isEdit ? "Edit Anggota" : "Tambah Anggota Baru"}</h2>
+          <button onClick={onClose} disabled={loading} className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -150,7 +150,7 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
           {/* Avatar Upload */}
           <div className="flex items-center gap-4">
             <div
-              className="relative w-20 h-20 rounded-2xl border-2 border-dashed border-white/20 overflow-hidden flex items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors"
+              className="relative w-20 h-20 rounded-2xl border-2 border-dashed border-slate-300 overflow-hidden flex items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors bg-white/50"
               onClick={() => avatarInputRef.current?.click()}
             >
               {avatarPreview ? (
@@ -164,7 +164,7 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
             </div>
             <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             <div>
-              <button type="button" onClick={() => avatarInputRef.current?.click()} className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors">
+              <button type="button" onClick={() => avatarInputRef.current?.click()} className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
                 {avatarPreview ? "Ganti Foto" : "Upload Foto Profil"}
               </button>
               <p className="text-xs text-slate-500 mt-1">PNG/JPG maks. 2MB</p>
@@ -181,16 +181,16 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
 
           {/* Jabatan Dropdown */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jabatan *</label>
+            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Jabatan *</label>
             <select
               required
               value={form.position}
               onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
+              className="w-full bg-white/50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
             >
-              <option value="" className="bg-slate-800">Pilih Jabatan</option>
+              <option value="">Pilih Jabatan</option>
               {(customPositions?.length ? customPositions : POSITION_OPTIONS).map((p) => (
-                <option key={p} value={p} className="bg-slate-800">{p}</option>
+                <option key={p} value={p}>{p}</option>
               ))}
             </select>
           </div>
@@ -198,28 +198,28 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Role */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Role *</label>
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Role *</label>
               <select
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as "manager" | "staff" }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
+                className="w-full bg-white/50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
               >
-                <option value="staff" className="bg-slate-800">Staff</option>
-                <option value="manager" className="bg-slate-800">Manager</option>
+                <option value="staff">Staff</option>
+                <option value="manager">Manager</option>
               </select>
             </div>
 
             {/* Status */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Status *</label>
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Status *</label>
               <select
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as Profile["status"] }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
+                className="w-full bg-white/50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
               >
-                <option value="aktif" className="bg-slate-800">Aktif</option>
-                <option value="cuti" className="bg-slate-800">Cuti</option>
-                <option value="resign" className="bg-slate-800">Resign</option>
+                <option value="aktif">Aktif</option>
+                <option value="cuti">Cuti</option>
+                <option value="resign">Resign</option>
               </select>
             </div>
           </div>
@@ -228,7 +228,7 @@ function MemberFormModal({ member, onSave, onClose, loading, customPositions }: 
 
           {/* Action buttons */}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} disabled={loading} className="flex-1 py-2.5 rounded-xl border border-white/10 text-slate-300 text-sm font-medium hover:bg-white/5 transition-colors disabled:opacity-50">
+            <button type="button" onClick={onClose} disabled={loading} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors disabled:opacity-50">
               Batal
             </button>
             <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -250,10 +250,10 @@ function FeaturedCard({ member, rank, onEdit, onDelete, canManage }: {
   const avatarSrc = member.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(member.full_name ?? "?")}`;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 flex flex-col md:flex-row"
-      style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)", boxShadow: `0 0 60px ${accent.glow}, 0 0 120px rgba(0,0,0,0.6)` }}>
-      <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.3) 40px, rgba(255,255,255,0.3) 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.3) 40px, rgba(255,255,255,0.3) 41px)" }} />
-      <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: accent.color }} />
+    <div className="relative overflow-hidden rounded-2xl border border-white/40 flex flex-col md:flex-row glass-card"
+      style={{ boxShadow: `0 0 60px ${accent.glow}` }}>
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.3) 40px, rgba(0,0,0,0.3) 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.3) 40px, rgba(0,0,0,0.3) 41px)" }} />
+      <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full opacity-10 blur-3xl" style={{ background: accent.color }} />
 
       {/* Avatar */}
       <div className="relative md:w-72 flex-shrink-0 flex flex-col items-center justify-end min-h-[280px] md:min-h-0 pt-8">
@@ -277,7 +277,7 @@ function FeaturedCard({ member, rank, onEdit, onDelete, canManage }: {
       <div className="flex-1 p-6 md:p-8 flex flex-col justify-between relative">
         <div>
           {/* Top Performer label removed as requested */}
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-1">{member.full_name ?? "—"}</h2>
+          <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight leading-none mb-1">{member.full_name ?? "—"}</h2>
           <p className="text-lg font-semibold uppercase tracking-widest mb-1" style={{ color: accent.color }}>{member.position ?? member.role}</p>
           {member.nik && <p className="text-xs text-slate-500 mb-2">NIK: {member.nik}</p>}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -286,17 +286,17 @@ function FeaturedCard({ member, rank, onEdit, onDelete, canManage }: {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="rounded-xl p-3 border border-white/10 flex flex-col gap-1" style={{ background: `${accent.color}10` }}>
-            <div className="flex items-center gap-1" style={{ color: accent.color }}><Award className="w-4 h-4" /><span className="text-xs text-slate-400">Jabatan</span></div>
-            <span className="text-sm font-black text-white">{member.position ?? "—"}</span>
+          <div className="rounded-xl p-3 border border-slate-200 flex flex-col gap-1 bg-white/50">
+            <div className="flex items-center gap-1" style={{ color: accent.color }}><Award className="w-4 h-4" /><span className="text-xs text-slate-500">Jabatan</span></div>
+            <span className="text-sm font-black text-slate-800">{member.position ?? "—"}</span>
           </div>
-          <div className="rounded-xl p-3 border border-white/10 flex flex-col gap-1" style={{ background: `${accent.color}10` }}>
-            <div className="flex items-center gap-1" style={{ color: accent.color }}><Clock className="w-4 h-4" /><span className="text-xs text-slate-400">Bergabung</span></div>
-            <span className="text-sm font-black text-white">{member.join_date ? new Date(member.join_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
+          <div className="rounded-xl p-3 border border-slate-200 flex flex-col gap-1 bg-white/50">
+            <div className="flex items-center gap-1" style={{ color: accent.color }}><Clock className="w-4 h-4" /><span className="text-xs text-slate-500">Bergabung</span></div>
+            <span className="text-sm font-black text-slate-800">{member.join_date ? new Date(member.join_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
           </div>
-          <div className="rounded-xl p-3 border border-white/10 flex flex-col gap-1" style={{ background: `${accent.color}10` }}>
-            <div className="flex items-center gap-1" style={{ color: accent.color }}><CheckCircle2 className="w-4 h-4" /><span className="text-xs text-slate-400">Status</span></div>
-            <span className="text-sm font-black text-white">{STATUS_LABELS[member.status]}</span>
+          <div className="rounded-xl p-3 border border-slate-200 flex flex-col gap-1 bg-white/50">
+            <div className="flex items-center gap-1" style={{ color: accent.color }}><CheckCircle2 className="w-4 h-4" /><span className="text-xs text-slate-500">Status</span></div>
+            <span className="text-sm font-black text-slate-800">{STATUS_LABELS[member.status]}</span>
           </div>
         </div>
       </div>
@@ -313,8 +313,8 @@ function TeamCard({ member, rank, onEdit, onDelete, canManage }: {
   const avatarSrc = member.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(member.full_name ?? "?")}`;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 cursor-pointer flex flex-col transition-all duration-300"
-      style={{ background: "linear-gradient(160deg, #0f172a 0%, #1a2540 100%)", boxShadow: hovered ? `0 0 40px ${accent.glow}, 0 8px 32px rgba(0,0,0,0.6)` : "0 4px 16px rgba(0,0,0,0.4)", transform: hovered ? "translateY(-4px) scale(1.02)" : "translateY(0) scale(1)" }}
+    <div className="relative overflow-hidden rounded-xl border border-white/40 cursor-pointer flex flex-col transition-all duration-300 glass-card"
+      style={{ boxShadow: hovered ? `0 0 20px ${accent.glow}, 0 8px 32px rgba(0,0,0,0.1)` : "0 4px 16px rgba(0,0,0,0.05)", transform: hovered ? "translateY(-4px) scale(1.02)" : "translateY(0) scale(1)" }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${accent.color}, transparent)` }} />
 
@@ -341,7 +341,7 @@ function TeamCard({ member, rank, onEdit, onDelete, canManage }: {
 
       {/* Info */}
       <div className="px-4 py-3 flex-1 flex flex-col">
-        <h3 className="text-sm font-black text-white leading-tight">{member.full_name ?? "—"}</h3>
+        <h3 className="text-sm font-black text-slate-800 leading-tight">{member.full_name ?? "—"}</h3>
         <p className="text-xs font-semibold uppercase tracking-wider mt-0.5" style={{ color: accent.color }}>{member.position ?? member.role}</p>
         {member.nik && <p className="text-[10px] text-slate-500 mt-0.5">NIK: {member.nik}</p>}
         <div className="flex flex-wrap gap-1 mt-2">
@@ -362,14 +362,13 @@ function LeaderboardRow({ member, index }: { member: Profile; index: number }) {
   const avatarSrc = member.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(member.full_name ?? "?")}`;
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all"
-      style={{ background: index === 0 ? `${accent.color}12` : "rgba(255,255,255,0.02)" }}>
-      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 bg-gradient-to-br ${accent.badge} text-white`}>{index + 1}</div>
-      <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/10">
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-white/40 hover:border-slate-200 transition-all bg-white/50 glass-card">
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 bg-gradient-to-br ${accent.badge} text-white shadow-sm`}>{index + 1}</div>
+      <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-slate-200">
         <Image src={avatarSrc} alt={member.full_name ?? ""} fill className="object-cover object-top" unoptimized />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-bold text-white truncate">{member.full_name ?? "—"}</div>
+        <div className="text-sm font-bold text-slate-800 truncate">{member.full_name ?? "—"}</div>
         <div className="text-[10px] font-medium truncate" style={{ color: accent.color }}>{member.position ?? member.role}</div>
       </div>
       <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${STATUS_COLORS[member.status]} flex-shrink-0`}>{STATUS_LABELS[member.status]}</span>
@@ -380,16 +379,16 @@ function LeaderboardRow({ member, index }: { member: Profile; index: number }) {
 // ─── Skeleton Loading ─────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-white/5 overflow-hidden animate-pulse" style={{ background: "#0f172a" }}>
-      <div className="h-1 bg-white/5" />
+    <div className="rounded-xl border border-slate-200 overflow-hidden animate-pulse bg-white/50 glass-card">
+      <div className="h-1 bg-slate-200" />
       <div className="px-4 pt-3 pb-1 flex justify-between items-center">
-        <div className="w-7 h-7 rounded-lg bg-white/10" />
+        <div className="w-7 h-7 rounded-lg bg-slate-200" />
       </div>
-      <div className="mx-4 h-44 rounded-xl bg-white/5" />
+      <div className="mx-4 h-44 rounded-xl bg-slate-200" />
       <div className="px-4 py-3 space-y-2">
-        <div className="h-3 rounded bg-white/10 w-3/4" />
-        <div className="h-2.5 rounded bg-white/5 w-1/2" />
-        <div className="h-2 rounded bg-white/5 w-1/3" />
+        <div className="h-3 rounded bg-slate-300 w-3/4" />
+        <div className="h-2.5 rounded bg-slate-200 w-1/2" />
+        <div className="h-2 rounded bg-slate-200 w-1/3" />
       </div>
     </div>
   );
@@ -411,6 +410,7 @@ export default function TeamPage() {
   const [deletingMember, setDeletingMember] = useState<Profile | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const isAreaManager = profile?.role === "area_manager";
   const canManage = profile?.role === "manager" || profile?.role === "admin" || isSuperAdmin;
 
   const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
@@ -418,10 +418,10 @@ export default function TeamPage() {
   // ─ Load members ─
   useEffect(() => {
     if (isSuperAdmin && !activeStoreId) return;
-    if (effectiveStoreId || isSuperAdmin) {
+    if (effectiveStoreId || isSuperAdmin || isAreaManager) {
       loadMembers();
     }
-  }, [effectiveStoreId, isSuperAdmin, activeStoreId]);
+  }, [effectiveStoreId, isSuperAdmin, activeStoreId, isAreaManager]);
 
   async function loadMembers() {
     setLoading(true);
@@ -548,8 +548,16 @@ export default function TeamPage() {
   const totalAktif = members.filter((m) => m.status === "aktif").length;
   const totalCuti = members.filter((m) => m.status === "cuti").length;
 
+  // Group by store for Area Manager
+  const groupedMembers = sorted.reduce((acc, member) => {
+    const storeName = member.stores?.name ?? "Tanpa Toko";
+    if (!acc[storeName]) acc[storeName] = [];
+    acc[storeName].push(member);
+    return acc;
+  }, {} as Record<string, Profile[]>);
+
   return (
-    <div className="min-h-full -m-8 p-8" style={{ background: "linear-gradient(180deg, #0a0f1e 0%, #0f172a 40%, #0a0f1e 100%)" }}>
+    <div className="min-h-full -m-8 p-8 bg-transparent">
       {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
@@ -578,18 +586,18 @@ export default function TeamPage() {
           <div className="w-96 h-32 rounded-full opacity-10 blur-3xl bg-blue-500" />
         </div>
         <div className="relative">
-          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-4 text-xs font-semibold text-slate-300 tracking-widest uppercase">
-            <Users className="w-3.5 h-3.5 text-blue-400" />
-            {profile?.stores?.name ?? "Meet Our Team"}
+          <div className="inline-flex items-center gap-2 bg-white/40 border border-white/50 shadow-sm rounded-full px-4 py-1.5 mb-4 text-xs font-semibold text-slate-600 tracking-widest uppercase">
+            <Users className="w-3.5 h-3.5 text-blue-500" />
+            {isAreaManager ? `Store Area ${profile?.full_name}` : (profile?.stores?.name ?? "Meet Our Team")}
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+          <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2">
             {" "}
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-              {profile?.stores?.name ?? "Kami"}
+            <span className="bg-gradient-to-r from-blue-600 via-purple-500 to-cyan-500 bg-clip-text text-transparent">
+              {isAreaManager ? `Area ${profile?.full_name}` : (profile?.stores?.name ?? "Kami")}
             </span>
           </h1>
-          <p className="text-slate-400 max-w-lg mx-auto text-sm">
-            Great Team, Great Impact.
+          <p className="text-slate-500 max-w-lg mx-auto text-sm">
+            {isAreaManager ? "Kelola dan pantau seluruh tim di area Anda." : "Great Team, Great Impact."}
           </p>
         </div>
       </div>
@@ -602,11 +610,11 @@ export default function TeamPage() {
           { label: "Sedang Cuti", value: totalCuti.toString(), icon: <Clock className="w-4 h-4" />, color: "#f59e0b" },
           { label: "Toko", value: profile?.stores?.name ?? "—", icon: <Zap className="w-4 h-4" />, color: "#a855f7" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-white/10 p-4 flex items-center gap-3" style={{ background: `${s.color}08` }}>
+          <div key={s.label} className="rounded-xl border border-slate-200 p-4 flex items-center gap-3 bg-white/50 glass-card">
             <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${s.color}20`, color: s.color }}>{s.icon}</div>
             <div>
-              <div className="text-xl font-black text-white truncate max-w-[80px]">{s.value}</div>
-              <div className="text-xs text-slate-400">{s.label}</div>
+              <div className="text-xl font-black text-slate-800 truncate max-w-[80px]">{s.value}</div>
+              <div className="text-xs text-slate-500">{s.label}</div>
             </div>
           </div>
         ))}
@@ -622,7 +630,7 @@ export default function TeamPage() {
             placeholder="Cari nama, jabatan, atau NIK..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white/50 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
           />
         </div>
 
@@ -632,12 +640,12 @@ export default function TeamPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+            className="bg-white/50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
           >
-            <option value="semua" className="bg-slate-800">Semua Status</option>
-            <option value="aktif" className="bg-slate-800">Aktif</option>
-            <option value="cuti" className="bg-slate-800">Cuti</option>
-            <option value="resign" className="bg-slate-800">Resign</option>
+            <option value="semua">Semua Status</option>
+            <option value="aktif">Aktif</option>
+            <option value="cuti">Cuti</option>
+            <option value="resign">Resign</option>
           </select>
         </div>
 
@@ -657,26 +665,71 @@ export default function TeamPage() {
       {loading ? (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">
-            <div className="rounded-2xl border border-white/10 h-72 animate-pulse" style={{ background: "#0f172a" }} />
+            <div className="rounded-2xl border border-slate-200 h-72 animate-pulse bg-white/50 glass-card" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 h-96 animate-pulse" style={{ background: "#0f172a" }} />
+          <div className="rounded-2xl border border-slate-200 h-96 animate-pulse bg-white/50 glass-card" />
         </div>
       ) : members.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-            <Users className="w-10 h-10 text-slate-600" />
+          <div className="w-20 h-20 rounded-2xl bg-white/60 border border-slate-200 flex items-center justify-center mb-4 glass-card">
+            <Users className="w-10 h-10 text-slate-400" />
           </div>
-          <h3 className="text-white font-bold text-xl mb-2">Tim masih kosong</h3>
+          <h3 className="text-slate-800 font-bold text-xl mb-2">Tim masih kosong</h3>
           <p className="text-slate-500 text-sm mb-6 max-w-sm">Mulai tambahkan anggota tim untuk mengelola toko ini bersama-sama.</p>
           {canManage && (
             <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors">
               <Plus className="w-4 h-4" /> Tambah Anggota Pertama
             </button>
           )}
+        </div>
+      ) : isAreaManager ? (
+        <div className="space-y-6">
+          {Object.entries(groupedMembers).map(([storeName, storeMembers]) => (
+            <div key={storeName} className="glass-card bg-white/50 border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6 border-b border-slate-200 pb-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-black text-slate-800">{storeName}</h2>
+                <span className="ml-auto text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-full">{storeMembers.length} Anggota</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama & Avatar</th>
+                      <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
+                      <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jabatan</th>
+                      <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {storeMembers.map(m => (
+                      <tr key={m.id} className="border-b border-slate-100 hover:bg-white/40 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 flex-shrink-0">
+                              <Image src={m.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(m.full_name ?? "?")}`} alt={m.full_name ?? ""} fill className="object-cover" unoptimized />
+                            </div>
+                            <span className="font-bold text-slate-800 text-sm">{m.full_name ?? "—"}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm font-medium text-slate-600">{m.nik ?? "—"}</td>
+                        <td className="py-3 px-4 text-sm font-semibold text-blue-600">{m.position ?? m.role}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded text-[10px] font-semibold border ${STATUS_COLORS[m.status]}`}>{STATUS_LABELS[m.status]}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -697,10 +750,10 @@ export default function TeamPage() {
           {/* RIGHT — Sidebar */}
           <div className="flex flex-col gap-4">
             {/* Leaderboard */}
-            <div className="rounded-2xl border border-white/10 p-5 flex-1" style={{ background: "linear-gradient(160deg, #0f172a, #1a2540)" }}>
+            <div className="rounded-2xl border border-slate-200 p-5 flex-1 bg-white/50 glass-card shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-yellow-400" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Daftar Anggota</h3>
+                <TrendingUp className="w-4 h-4 text-blue-500" />
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Daftar Anggota</h3>
                 <span className="ml-auto text-xs text-slate-500">{sorted.length} orang</span>
               </div>
               <div className="space-y-2">
@@ -712,10 +765,10 @@ export default function TeamPage() {
             </div>
 
             {/* Distribusi Jabatan */}
-            <div className="rounded-2xl border border-white/10 p-5" style={{ background: "linear-gradient(160deg, #0f172a, #1a2540)" }}>
+            <div className="rounded-2xl border border-slate-200 p-5 bg-white/50 glass-card shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <Award className="w-4 h-4 text-blue-400" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Distribusi Status</h3>
+                <Award className="w-4 h-4 text-purple-500" />
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Distribusi Status</h3>
               </div>
               <div className="space-y-3">
                 {(["aktif", "cuti", "resign"] as const).map((s, i) => {
@@ -725,11 +778,11 @@ export default function TeamPage() {
                   return (
                     <div key={s}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300 capitalize">{STATUS_LABELS[s]}</span>
-                        <span className="text-slate-400">{count} orang ({Math.round(pct)}%)</span>
+                        <span className="text-slate-700 font-medium capitalize">{STATUS_LABELS[s]}</span>
+                        <span className="text-slate-500">{count} orang ({Math.round(pct)}%)</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-white/5">
-                        <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: colors[i] }} />
+                      <div className="h-1.5 rounded-full bg-slate-200">
+                        <div className="h-1.5 rounded-full transition-all duration-700 shadow-sm" style={{ width: `${pct}%`, background: colors[i] }} />
                       </div>
                     </div>
                   );

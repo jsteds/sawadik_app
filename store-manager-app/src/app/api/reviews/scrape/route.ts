@@ -16,8 +16,8 @@ function extractPlaceId(url: string): string | null {
   const placeIdMatch = url.match(/place_id[=:]([A-Za-z0-9_-]+)/);
   if (placeIdMatch) return placeIdMatch[1];
 
-  // ChIJ pattern in data parameter
-  const chiJMatch = url.match(/!1s(0x[a-f0-9]+:[a-f0-9]+)/);
+  // ChIJ pattern or data_id pattern in data parameter
+  const chiJMatch = url.match(/!1s(0x[a-f0-9x]+:0x[a-f0-9x]+)/i) || url.match(/!1s(ChIJ[a-zA-Z0-9_-]+)/);
   if (chiJMatch) return chiJMatch[1];
 
   return null;
@@ -65,18 +65,34 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
+    // Resolve short URLs
+    let resolvedUrl = google_maps_url;
+    if (google_maps_url.includes("maps.app.goo.gl") || google_maps_url.includes("goo.gl/maps")) {
+      try {
+        const response = await fetch(google_maps_url, { method: "GET", redirect: "manual" });
+        const location = response.headers.get("location");
+        if (response.status >= 300 && response.status < 400 && location) {
+          resolvedUrl = location;
+        } else {
+          resolvedUrl = response.url;
+        }
+      } catch (err) {
+        console.warn("Failed to resolve short URL", err);
+      }
+    }
+
     // Extract or use provided Place ID
-    let placeId = extractPlaceId(google_maps_url);
+    let placeId = extractPlaceId(resolvedUrl);
 
     // Step 1: If no place_id extracted, search for the place first
     if (!placeId) {
       // Extract place name from URL
-      const placeNameMatch = google_maps_url.match(
+      const placeNameMatch = resolvedUrl.match(
         /place\/([^/@]+)/
       );
       const searchQuery = placeNameMatch
         ? decodeURIComponent(placeNameMatch[1].replace(/\+/g, " "))
-        : google_maps_url;
+        : resolvedUrl;
 
       // Use SerpAPI Google Maps search to find place_id
       const searchUrl = new URL("https://serpapi.com/search.json");
@@ -109,7 +125,11 @@ export async function POST(request: NextRequest) {
     // Step 2: Fetch reviews using SerpAPI Google Maps Reviews
     const reviewsUrl = new URL("https://serpapi.com/search.json");
     reviewsUrl.searchParams.set("engine", "google_maps_reviews");
-    reviewsUrl.searchParams.set("place_id", placeId);
+    if (placeId.startsWith("0x")) {
+      reviewsUrl.searchParams.set("data_id", placeId);
+    } else {
+      reviewsUrl.searchParams.set("place_id", placeId);
+    }
     reviewsUrl.searchParams.set("sort_by", "newestFirst");
     reviewsUrl.searchParams.set("hl", "id"); // Indonesian language
     reviewsUrl.searchParams.set("api_key", serpApiKey);

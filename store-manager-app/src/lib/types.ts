@@ -231,3 +231,42 @@ export const SENTIMENT_COLORS: Record<SentimentType, string> = {
   negative: "bg-red-500/20 text-red-400 border-red-500/30",
   neutral: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
+
+// ─── Stock Opname ───────────────────────────────────────────────────────────────
+
+export interface StockOpnameSession {
+  id: string;
+  store_id: string;
+  title: string;
+  status: "active" | "completed" | "uploaded";
+  started_by: string | null;
+  created_at: string;
+}
+
+export interface StockOpnameItem {
+  id: string;
+  session_id: string;
+  article_code: string | null;
+  item_name: string;
+  system_qty: number;
+  created_at: string;
+}
+
+export interface StockOpnameLocation {
+  id: string;
+  session_id: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface StockOpnameCount {
+  id: string;
+  location_id: string;
+  item_id: string;
+  qty: number;
+  counted_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+

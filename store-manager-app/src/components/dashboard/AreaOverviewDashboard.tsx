@@ -280,7 +280,7 @@ export default function AreaOverviewDashboard() {
 
       {/* ─── Global KPI Cards across All Stores ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="glass-card p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-400">
               Total Toko Aktif
@@ -297,7 +297,7 @@ export default function AreaOverviewDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="glass-card p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-400">
               Staf In-Charge Hari Ini
@@ -314,7 +314,7 @@ export default function AreaOverviewDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="glass-card p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-400">
               Penyelesaian Daily Cleaning
@@ -331,7 +331,7 @@ export default function AreaOverviewDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="glass-card p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-400">
               Penyelesaian General Cleaning
@@ -350,7 +350,7 @@ export default function AreaOverviewDashboard() {
       </div>
 
       {/* ─── Navigation Tabs & Search bar ─── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass-card p-3">
         <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-zinc-800 p-1 rounded-xl w-full sm:w-auto">
           <button
             onClick={() => setActiveTab("overview")}
@@ -416,14 +416,14 @@ export default function AreaOverviewDashboard() {
 
       {/* ─── Loading State ─── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800">
+        <div className="flex flex-col items-center justify-center py-20 glass-card">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-sm font-medium text-slate-500">
             Memuat data seluruh toko untuk wilayah Anda...
           </p>
         </div>
       ) : filteredStores.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800">
+        <div className="text-center py-20 glass-card">
           <StoreIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">
             Toko Tidak Ditemukan
@@ -450,7 +450,7 @@ export default function AreaOverviewDashboard() {
                 return (
                   <div
                     key={sd.store.id}
-                    className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden"
+                    className="glass-card hover:shadow-md transition-all flex flex-col overflow-hidden"
                   >
                     {/* Store Header */}
                     <div className="p-5 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/40 flex items-center justify-between">
@@ -579,7 +579,7 @@ export default function AreaOverviewDashboard() {
 
           {/* ════════ TAB 2: JADWAL OPERASIONAL SEMUA TOKO ════════ */}
           {activeTab === "jadwal" && (
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+            <div className="glass-card overflow-hidden">
               <div className="p-6 border-b border-slate-100 dark:border-zinc-800">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">
                   Komparasi Jadwal & Personil Toko ({selectedDate})
@@ -591,7 +591,7 @@ export default function AreaOverviewDashboard() {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 dark:bg-zinc-800/60 text-xs uppercase text-slate-500 font-semibold">
+                  <thead className="bg-slate-50/50 text-xs uppercase text-slate-600 font-semibold">
                     <tr>
                       <th className="px-6 py-4">Toko</th>
                       <th className="px-6 py-4">Total Staf</th>
@@ -599,10 +599,10 @@ export default function AreaOverviewDashboard() {
                       <th className="px-6 py-4">Daftar Nama Staf Bertugas</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                  <tbody className="divide-y divide-slate-100/50">
                     {filteredStores.map((sd) => (
-                      <tr key={sd.store.id} className="hover:bg-slate-50/60 dark:hover:bg-zinc-800/40">
-                        <td className="px-6 py-4 font-bold text-slate-800 dark:text-white">
+                      <tr key={sd.store.id} className="hover:bg-white/40 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-800">
                           <div>{sd.store.name}</div>
                           <div className="text-xs font-normal text-slate-400">{sd.store.code || "-"}</div>
                         </td>
@@ -640,7 +640,7 @@ export default function AreaOverviewDashboard() {
 
           {/* ════════ TAB 3: DAILY CLEANING SEMUA TOKO ════════ */}
           {activeTab === "daily" && (
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+            <div className="glass-card overflow-hidden">
               <div className="p-6 border-b border-slate-100 dark:border-zinc-800">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">
                   Penyelesaian Daily Cleaning per Toko ({selectedDate})
@@ -652,7 +652,7 @@ export default function AreaOverviewDashboard() {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 dark:bg-zinc-800/60 text-xs uppercase text-slate-500 font-semibold">
+                  <thead className="bg-slate-50/50 text-xs uppercase text-slate-600 font-semibold">
                     <tr>
                       <th className="px-6 py-4">Toko</th>
                       <th className="px-6 py-4">Status Progress</th>
@@ -660,7 +660,7 @@ export default function AreaOverviewDashboard() {
                       <th className="px-6 py-4">Tugas Menunggu</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                  <tbody className="divide-y divide-slate-100/50">
                     {filteredStores.map((sd) => {
                       const pct =
                         sd.dailyTotalCount > 0
@@ -669,8 +669,8 @@ export default function AreaOverviewDashboard() {
                       const pending = sd.dailyTotalCount - sd.dailyCompletedCount;
 
                       return (
-                        <tr key={sd.store.id} className="hover:bg-slate-50/60 dark:hover:bg-zinc-800/40">
-                          <td className="px-6 py-4 font-bold text-slate-800 dark:text-white">
+                        <tr key={sd.store.id} className="hover:bg-white/40 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-800">
                             <div>{sd.store.name}</div>
                             <div className="text-xs font-normal text-slate-400">{sd.store.code || "-"}</div>
                           </td>
@@ -715,7 +715,7 @@ export default function AreaOverviewDashboard() {
 
           {/* ════════ TAB 4: GENERAL CLEANING SEMUA TOKO ════════ */}
           {activeTab === "gc" && (
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+            <div className="glass-card overflow-hidden">
               <div className="p-6 border-b border-slate-100 dark:border-zinc-800">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">
                   Progress General Cleaning per Toko ({selectedDate})
@@ -727,7 +727,7 @@ export default function AreaOverviewDashboard() {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 dark:bg-zinc-800/60 text-xs uppercase text-slate-500 font-semibold">
+                  <thead className="bg-slate-50/50 text-xs uppercase text-slate-600 font-semibold">
                     <tr>
                       <th className="px-6 py-4">Toko</th>
                       <th className="px-6 py-4">Progress GC</th>
@@ -735,7 +735,7 @@ export default function AreaOverviewDashboard() {
                       <th className="px-6 py-4">Keterangan</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                  <tbody className="divide-y divide-slate-100/50">
                     {filteredStores.map((sd) => {
                       const pct =
                         sd.gcTotalCount > 0
@@ -743,8 +743,8 @@ export default function AreaOverviewDashboard() {
                           : 0;
 
                       return (
-                        <tr key={sd.store.id} className="hover:bg-slate-50/60 dark:hover:bg-zinc-800/40">
-                          <td className="px-6 py-4 font-bold text-slate-800 dark:text-white">
+                        <tr key={sd.store.id} className="hover:bg-white/40 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-800">
                             <div>{sd.store.name}</div>
                             <div className="text-xs font-normal text-slate-400">{sd.store.code || "-"}</div>
                           </td>

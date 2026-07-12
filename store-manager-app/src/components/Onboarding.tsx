@@ -10,21 +10,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Store, User, IdCard, Sparkles, ArrowRight, Loader2, Search, Check } from "lucide-react";
 
 import { getUniqueStoresFromSheet } from "@/lib/actions/googleSheets";
-export default function Onboarding() {
+export default function Onboarding({ selectedRole }: { selectedRole: string }) {
   const { session, refreshProfile } = useAuth();
   
-  const [userRole, setUserRole] = useState<string>("manager");
+  const [userRole, setUserRole] = useState<string>(selectedRole);
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("intended_role");
-    const metaRole = session?.user?.user_metadata?.role;
-    
-    if (storedRole) {
-      setUserRole(storedRole);
-    } else if (metaRole) {
-      setUserRole(metaRole);
-    }
-  }, [session]);
+    setUserRole(selectedRole);
+  }, [selectedRole]);
 
   const isStaff = userRole === "staff";
 

@@ -77,6 +77,9 @@ export default function AreaManagerSetup({ profile, onComplete }: Props) {
         full_name: fullName.trim(),
         nik: nik.trim(),
         managed_store_ids: Array.from(selectedIds),
+        role: "area_manager",
+        position: "Area Manager",
+        status: "aktif",
       })
       .eq("id", profile.id);
 

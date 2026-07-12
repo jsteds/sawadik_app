@@ -150,7 +150,7 @@ export default function DashboardPage() {
   const strokeDashoffset = circumference - (penyelesaianCleaning / 100) * circumference;
 
   return (
-    <div className="min-h-full bg-[#E5E9F0] p-4 sm:p-8 rounded-[2rem] font-sans -m-4 sm:-m-8">
+    <div className="min-h-full bg-transparent p-4 sm:p-8 rounded-[2rem] font-sans -m-4 sm:-m-8">
       
       {/* Header Area */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6 pt-4 px-2">
@@ -222,7 +222,7 @@ export default function DashboardPage() {
              </div>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-2 shadow-sm space-y-1 border border-white/50">
+          <div className="glass-card p-2 space-y-1">
             <AccordionItem 
               title="Status Cleaning" 
               expanded={expandedSection === "status"} 
@@ -253,7 +253,7 @@ export default function DashboardPage() {
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                
                {/* Progress Bar Widget */}
-               <div className="bg-white/80 backdrop-blur-md rounded-[2rem] p-6 shadow-sm flex flex-col border border-white/50">
+               <div className="glass-card p-6 flex flex-col">
                  <div className="flex justify-between items-center mb-6">
                     <div>
                       <h3 className="text-lg font-medium text-slate-700">Progress</h3>
@@ -292,7 +292,7 @@ export default function DashboardPage() {
                </div>
 
                {/* Circular Time Tracker Widget */}
-               <div className="bg-white/80 backdrop-blur-md rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center relative border border-white/50">
+               <div className="glass-card p-6 flex flex-col items-center justify-center relative">
                   <div className="absolute top-6 right-6 w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400">
                     ↗
                   </div>
@@ -347,34 +347,32 @@ export default function DashboardPage() {
                </div>
             </div>
 
-            {/* Right Widget: Dark Navy Pending Tasks */}
-            <div className="lg:col-span-1 bg-[#1E3A8A] rounded-[2rem] p-6 text-white shadow-xl flex flex-col relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-2xl" />
-               <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-400/10 rounded-full -ml-10 -mb-10 blur-2xl" />
+            {/* Right Widget: Pending Tasks */}
+            <div className="lg:col-span-1 glass-card p-6 flex flex-col relative overflow-hidden border-t-4 border-t-blue-500/50">
                
                <div className="flex justify-between items-end mb-6 relative z-10">
-                 <h3 className="text-xl font-light leading-snug">Tugas<br/>Tertunda</h3>
-                 <span className="text-4xl font-light text-blue-200">{tugasTertunda.length}</span>
+                 <h3 className="text-xl font-light leading-snug text-slate-800">Tugas<br/>Tertunda</h3>
+                 <span className="text-4xl font-light text-blue-600">{tugasTertunda.length}</span>
                </div>
 
                <div className="flex-1 overflow-y-auto space-y-4 relative z-10 mt-2 custom-scrollbar pr-2">
                  {tugasTertunda.length === 0 ? (
-                   <p className="text-sm text-blue-200/70 text-center mt-10">Semua tugas selesai!</p>
+                   <p className="text-sm text-slate-500 text-center mt-10">Semua tugas selesai!</p>
                  ) : (
                    tugasTertunda.map((tugas, i) => (
                      <div key={i} className="flex items-center justify-between group">
                        <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                           <Clock className="w-4 h-4 text-blue-200" />
+                         <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                           <Clock className="w-4 h-4 text-blue-600" />
                          </div>
                          <div className="min-w-0">
-                           <p className="text-sm font-medium text-white truncate max-w-[120px]">{tugas.area_equipment || tugas.title}</p>
-                           <p className={`text-[10px] truncate font-medium ${tugas.assignee_id === profile?.id ? "text-green-300 font-bold" : "text-blue-200/80"}`}>
+                           <p className="text-sm font-medium text-slate-800 truncate max-w-[120px]">{tugas.area_equipment || tugas.title}</p>
+                           <p className={`text-[10px] truncate font-medium ${tugas.assignee_id === profile?.id ? "text-emerald-600 font-bold" : "text-slate-500"}`}>
                              {tugas.assignee?.full_name ? (tugas.assignee_id === profile?.id ? `Untuk Anda` : `Oleh ${tugas.assignee.full_name}`) : "Belum ditugaskan"}
                            </p>
                          </div>
                        </div>
-                       <div className="w-5 h-5 rounded border border-blue-400/40 flex items-center justify-center bg-white/5">
+                       <div className="w-5 h-5 rounded border border-slate-300 flex items-center justify-center bg-white/50">
                          {/* Empty checkbox */}
                        </div>
                      </div>
@@ -386,7 +384,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Bottom Timeline */}
-          <div className="bg-white/80 backdrop-blur-md rounded-[2rem] p-6 shadow-sm overflow-x-auto border border-white/50">
+          <div className="glass-card p-6 overflow-x-auto">
              <div className="flex items-center justify-between mb-8 min-w-[600px]">
                 <h3 className="text-lg font-medium text-slate-700">Aktivitas Terbaru</h3>
                 <div className="flex items-center gap-2 bg-slate-100 rounded-full px-4 py-1.5 border border-slate-200/50">
@@ -411,9 +409,9 @@ export default function DashboardPage() {
                           <div className="w-3 h-3 rounded-full bg-slate-200 border-[3px] border-white shadow-sm mb-4" />
                           
                           {showAct && (
-                            <div className="bg-[#1E3A8A] text-white rounded-[1rem] p-3 w-40 text-left shadow-lg transform translate-x-4">
+                            <div className="bg-white/90 text-slate-800 border border-white rounded-2xl p-3 w-40 text-left shadow-lg transform translate-x-4 backdrop-blur-sm">
                                <p className="text-xs font-semibold truncate leading-tight">{act.area_equipment || act.title}</p>
-                               <p className="text-[10px] text-blue-200/80 mt-1 truncate">Oleh {act.assignee?.full_name}</p>
+                               <p className="text-[10px] text-slate-500 mt-1 truncate">Oleh {act.assignee?.full_name}</p>
                             </div>
                           )}
                        </div>
