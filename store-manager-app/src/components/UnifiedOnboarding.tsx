@@ -8,7 +8,7 @@ import Onboarding from "./Onboarding";
 
 interface UnifiedOnboardingProps {
   profile: any;
-  refreshProfile: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 export default function UnifiedOnboarding({ profile, refreshProfile }: UnifiedOnboardingProps) {
