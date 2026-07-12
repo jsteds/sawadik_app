@@ -105,15 +105,15 @@ export default function Onboarding({ selectedRole }: { selectedRole: string }) {
       // Hubungkan profile user dengan store_id dan update informasi
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          auth_user_id: session?.user?.id,
+          email: session?.user?.email,
+          full_name: fullName,
+          nik: nik,
           store_id: storeId,
-          full_name: fullName.trim(),
-          nik: nik.trim(),
-          role: isStaff ? "staff" : "manager",
-          position: isStaff ? "Staff" : "Store Manager",
-          status: "aktif",
-        })
-        .eq("auth_user_id", session.user.id);
+          role: userRole,
+          status: 'aktif',
+        }, { onConflict: 'auth_user_id' });
 
       if (profileError) {
         throw new Error(`Gagal memperbarui profil: ${profileError.message}`);

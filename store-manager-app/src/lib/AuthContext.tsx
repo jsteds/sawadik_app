@@ -52,7 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAreaManager = profile?.role === "area_manager";
 
   const refreshProfile = useCallback(async () => {
-    const p = await getCurrentProfile();
+    let p = await getCurrentProfile();
+    
+    // Retry logic for Supabase trigger delay
+    if (!p) {
+      for (let i = 0; i < 3; i++) {
+        await new Promise(res => setTimeout(res, 1000));
+        p = await getCurrentProfile();
+        if (p) break;
+      }
+    }
+    
     setProfile(p);
 
     // If super admin, fetch all stores

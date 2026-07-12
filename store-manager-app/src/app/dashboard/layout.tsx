@@ -193,10 +193,11 @@ function DashboardInnerLayout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  // Check if profile is incomplete
-  const isProfileIncomplete = profile && (
-    (!profile.store_id && (!profile.managed_store_ids || profile.managed_store_ids.length === 0))
-  );
+  // Check if profile is incomplete based on role requirements
+  const isProfileIncomplete = !profile || 
+    !profile.role ||
+    ((profile.role === 'staff' || profile.role === 'manager') && !profile.store_id) ||
+    (profile.role === 'area_manager' && (!Array.isArray(profile.managed_store_ids) || profile.managed_store_ids.length === 0));
 
   if (isProfileIncomplete && !isSuperAdmin) {
     return (

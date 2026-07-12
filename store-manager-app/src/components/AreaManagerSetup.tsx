@@ -22,8 +22,8 @@ export default function AreaManagerSetup({ profile, onComplete }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loadingStores, setLoadingStores] = useState(false);
   const [storesLoaded, setStoresLoaded] = useState(false);
-  const [fullName, setFullName] = useState(profile.full_name || "");
-  const [nik, setNik] = useState(profile.nik || "");
+  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [nik, setNik] = useState(profile?.nik || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,17 +71,20 @@ export default function AreaManagerSetup({ profile, onComplete }: Props) {
     setLoading(true);
     setError("");
 
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({
+      .upsert({
+        auth_user_id: session?.user?.id || profile?.auth_user_id,
+        email: session?.user?.email || profile?.email,
         full_name: fullName.trim(),
         nik: nik.trim(),
         managed_store_ids: Array.from(selectedIds),
         role: "area_manager",
         position: "Area Manager",
         status: "aktif",
-      })
-      .eq("id", profile.id);
+      }, { onConflict: 'auth_user_id' });
 
     if (updateError) {
       setError("Gagal menyimpan: " + updateError.message);
