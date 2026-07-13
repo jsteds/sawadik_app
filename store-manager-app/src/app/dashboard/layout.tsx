@@ -44,6 +44,8 @@ function Header() {
     { name: "Daily Cleaning", href: "/dashboard/daily-cleaning" },
     { name: "General Cleaning", href: "/dashboard/cleaning" },
     { name: "Ulasan", href: "/dashboard/reviews" },
+    { name: "Name Tag", href: "/dashboard/name-tag" },
+    { name: "Stock Opname", href: "/dashboard/stock-opname" },
   ];
 
   const currentPage =

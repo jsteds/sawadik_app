@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -11,12 +12,15 @@ import {
   Sparkles,
   CalendarDays,
   MessageSquareText,
+  IdCard,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { isAreaManager } = useAuth();
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
 
   const standardNavItems = [
     { name: "Home", href: "/dashboard", icon: LayoutDashboard },
@@ -26,6 +30,8 @@ export default function BottomNav() {
     { name: "Daily", href: "/dashboard/daily-cleaning", icon: CheckSquare },
     { name: "General", href: "/dashboard/cleaning", icon: Sparkles },
     { name: "Ulasan", href: "/dashboard/reviews", icon: MessageSquareText },
+    { name: "Name Tag", href: "/dashboard/name-tag", icon: IdCard },
+    { name: "Stock Opname", href: "/dashboard/stock-opname", icon: Package },
   ];
 
   const areaManagerNavItems = [
@@ -35,14 +41,26 @@ export default function BottomNav() {
     { name: "Daily Cleaning", href: "/dashboard/daily-cleaning", icon: CheckSquare },
     { name: "General Cleaning", href: "/dashboard/cleaning", icon: Sparkles },
     { name: "Ulasan", href: "/dashboard/reviews", icon: MessageSquareText },
+    { name: "Name Tag", href: "/dashboard/name-tag", icon: IdCard },
+    { name: "Stock Opname", href: "/dashboard/stock-opname", icon: Package },
   ];
 
   const navItems = isAreaManager ? areaManagerNavItems : standardNavItems;
 
+  useEffect(() => {
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [pathname]);
+
   return (
     <div className="md:hidden fixed bottom-0 left-0 w-full z-50 pb-safe pointer-events-none">
       {/* Container for the navbar */}
-      <div className="relative mx-auto w-full glass-panel border-b-0 border-l-0 border-r-0 rounded-t-3xl px-3 h-[72px] flex items-center justify-between overflow-x-auto no-scrollbar gap-2 pointer-events-auto">
+      <div className="relative mx-auto w-full glass-panel border-b-0 border-l-0 border-r-0 rounded-t-3xl px-6 h-[74px] flex items-center justify-start overflow-x-auto no-scrollbar gap-2 pointer-events-auto scroll-smooth">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -53,7 +71,8 @@ export default function BottomNav() {
             <Link
               key={item.name}
               href={item.href}
-              className="relative flex flex-col items-center justify-center min-w-[64px] flex-shrink-0 h-full"
+              ref={isActive ? activeRef : null}
+              className="relative flex flex-col items-center justify-center min-w-[68px] flex-shrink-0 h-full py-1"
             >
               {/* Active Indicator / Floating Circle */}
               {isActive && (
@@ -70,7 +89,7 @@ export default function BottomNav() {
               {/* Label */}
               <span
                 className={cn(
-                  "text-[10px] font-medium transition-all duration-300",
+                  "text-[10px] font-medium transition-all duration-300 text-center leading-tight whitespace-nowrap",
                   isActive
                     ? "opacity-100 translate-y-4 text-blue-800 font-bold"
                     : "opacity-100 text-slate-600 font-semibold"

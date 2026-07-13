@@ -13,6 +13,7 @@ import {
   CalendarDays,
   MessageSquareText,
   Package,
+  IdCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -25,8 +26,7 @@ const navItems = [
   { name: "Daily Cleaning", href: "/dashboard/daily-cleaning", icon: CheckSquare },
   { name: "General Cleaning", href: "/dashboard/cleaning", icon: Sparkles },
   { name: "Ulasan Google", href: "/dashboard/reviews", icon: MessageSquareText },
-  // Placeholder icons based on reference image
-  { name: "Name Tag Generator", href: "/dashboard/name-tag", icon: FileText },
+  { name: "Name Tag Generator", href: "/dashboard/name-tag", icon: IdCard },
   { name: "Stock Opname", href: "/dashboard/stock-opname", icon: Package },
 ];
 
