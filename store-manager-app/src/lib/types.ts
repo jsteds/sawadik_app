@@ -249,6 +249,8 @@ export interface StockOpnameItem {
   article_code: string | null;
   item_name: string;
   system_qty: number;
+  uom?: string | null;
+  site?: string | null;
   created_at: string;
 }
 
@@ -269,4 +271,44 @@ export interface StockOpnameCount {
   created_at: string;
   updated_at: string;
 }
+
+// Master Countsheet standar Repot.in (F&B Chatime Count Sheet lengkap termasuk Lychee, Pearl, Syrup, Tea)
+export const DEFAULT_REPOTIN_COUNT_SHEET = [
+  { article_code: "W000160", item_name: "BUBBLE TEA POWDER MIX", uom: "G", system_qty: 15000, site: "F703CH" },
+  { article_code: "W000096", item_name: "MOUSSE POWDER", uom: "G", system_qty: 8500, site: "F703CH" },
+  { article_code: "W000095", item_name: "TARO POWDER", uom: "G", system_qty: 12000, site: "F703CH" },
+  { article_code: "W000094", item_name: "HEAVY CREAM", uom: "ML", system_qty: 24000, site: "F703CH" },
+  { article_code: "W000083", item_name: "COMPOSITE JELLY TOPPINGS", uom: "G", system_qty: 10000, site: "F703CH" },
+  { article_code: "W000081", item_name: "COFFEE JELLY", uom: "G", system_qty: 9000, site: "F703CH" },
+  { article_code: "W000079", item_name: "RED BEAN IN SYRUP", uom: "G", system_qty: 7500, site: "F703CH" },
+  { article_code: "W000078", item_name: "HONEY ALOE", uom: "G", system_qty: 6000, site: "F703CH" },
+  { article_code: "W000066", item_name: "WHITE SUGAR", uom: "G", system_qty: 35000, site: "F703CH" },
+  { article_code: "W000065", item_name: "VANILLA SYRUP", uom: "G", system_qty: 14000, site: "F703CH" },
+  { article_code: "W000064", item_name: "TAPIOCA PEARLS", uom: "G", system_qty: 45000, site: "F703CH" },
+  { article_code: "W000063", item_name: "TAPIOCA FLOUR", uom: "G", system_qty: 5000, site: "F703CH" },
+  { article_code: "W000062", item_name: "STRAWBERRY CONC.SYRUP", uom: "OZ", system_qty: 320, site: "F703CH" },
+  { article_code: "W000051", item_name: "PLASTIC SEAL PP", uom: "EA", system_qty: 1200, site: "F703CH" },
+  { article_code: "W000041", item_name: "MANGO CONC.SYRUP", uom: "OZ", system_qty: 250, site: "F703CH" },
+  { article_code: "W000037", item_name: "CT LEMON JUICE", uom: "OZ", system_qty: 180, site: "F703CH" },
+  { article_code: "W000034", item_name: "JASMINE GREEN TEA BAG", uom: "G", system_qty: 8000, site: "F703CH" },
+  { article_code: "W000033", item_name: "JAPANESE ROASTED TEA", uom: "G", system_qty: 6500, site: "F703CH" },
+  { article_code: "W000032", item_name: "MATCHA GREEN TEA POWDER", uom: "G", system_qty: 9500, site: "F703CH" },
+  { article_code: "W000031", item_name: "INSTANT EGG PUDDING POWDER", uom: "G", system_qty: 11000, site: "F703CH" },
+  { article_code: "W000010", item_name: "LYCHEE CONC. SYRUP", uom: "OZ", system_qty: 450, site: "F703CH" },
+  { article_code: "W000011", item_name: "LYCHEE JELLY TOPPING", uom: "G", system_qty: 12500, site: "F703CH" },
+  { article_code: "W000012", item_name: "PEACH CONC. SYRUP", uom: "OZ", system_qty: 380, site: "F703CH" },
+  { article_code: "W000013", item_name: "PASSION FRUIT CONC. SYRUP", uom: "OZ", system_qty: 410, site: "F703CH" },
+  { article_code: "W000014", item_name: "HAZELNUT SYRUP", uom: "ML", system_qty: 8000, site: "F703CH" },
+  { article_code: "W000015", item_name: "CARAMEL SYRUP", uom: "ML", system_qty: 6500, site: "F703CH" },
+  { article_code: "W000016", item_name: "BROWN SUGAR SYRUP", uom: "G", system_qty: 18000, site: "F703CH" },
+  { article_code: "W000017", item_name: "OOLONG TEA BAG", uom: "G", system_qty: 9000, site: "F703CH" },
+  { article_code: "W000018", item_name: "EARL GREY TEA BAG", uom: "G", system_qty: 8500, site: "F703CH" },
+  { article_code: "W000019", item_name: "ASSAM BLACK TEA BAG", uom: "G", system_qty: 11000, site: "F703CH" },
+  { article_code: "W000020", item_name: "GRASS JELLY TOPPING", uom: "G", system_qty: 15000, site: "F703CH" },
+  { article_code: "W000021", item_name: "COCONUT JELLY (NATA DE COCO)", uom: "G", system_qty: 14000, site: "F703CH" },
+  { article_code: "W000022", item_name: "CHOCOLATE POWDER MIX", uom: "G", system_qty: 22000, site: "F703CH" },
+  { article_code: "W000023", item_name: "PLASTIC CUP REGULAR 16OZ", uom: "EA", system_qty: 2500, site: "F703CH" },
+  { article_code: "W000024", item_name: "PLASTIC CUP LARGE 22OZ", uom: "EA", system_qty: 3100, site: "F703CH" },
+  { article_code: "W000025", item_name: "BOBA STRAW BIG", uom: "EA", system_qty: 4000, site: "F703CH" },
+];
 

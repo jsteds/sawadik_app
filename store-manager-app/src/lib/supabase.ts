@@ -740,13 +740,26 @@ export async function getStockOpnameItems(sessionId: string): Promise<any[]> {
     .from("stock_opname_items")
     .select("*")
     .eq("session_id", sessionId)
-    .order("item_name", { ascending: true });
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
 
   if (error) {
     console.error("getStockOpnameItems error:", error.message);
     return [];
   }
   return data || [];
+}
+
+/** Search items in a session by article code or name (case-insensitive, multi-word accurate). */
+export async function getStockOpnameItemsBySearch(sessionId: string, query: string): Promise<any[]> {
+  if (!query || query.trim().length < 1) return [];
+  const items = await getStockOpnameItems(sessionId);
+  const words = query.toLowerCase().trim().split(/\s+/);
+  return items.filter(item => {
+    const name = (item.item_name || "").toLowerCase();
+    const code = (item.article_code || "").toLowerCase();
+    return words.every(w => name.includes(w) || code.includes(w));
+  }).slice(0, 50);
 }
 
 export async function insertStockOpnameItems(items: any[]): Promise<{ error: string | null }> {
@@ -756,12 +769,25 @@ export async function insertStockOpnameItems(items: any[]): Promise<{ error: str
   return { error: error ? error.message : null };
 }
 
+export async function getStockOpnameSession(sessionId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from("stock_opname_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+  if (error) {
+    console.error("getStockOpnameSession error:", error.message);
+    return null;
+  }
+  return data;
+}
+
 export async function getStockOpnameLocations(sessionId: string): Promise<any[]> {
   const { data, error } = await supabase
     .from("stock_opname_locations")
     .select("*, created_by_profile:profiles!created_by(full_name)")
     .eq("session_id", sessionId)
-    .order("name", { ascending: true });
+    .order("created_at", { ascending: true });
 
   if (error) {
     console.error("getStockOpnameLocations error:", error.message);
@@ -778,6 +804,15 @@ export async function createStockOpnameLocation(sessionId: string, name: string,
     .single();
 
   return { data, error: error ? error.message : null };
+}
+
+/** Mark a location as fully counted / complete */
+export async function markLocationComplete(locationId: string, isComplete: boolean = true): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("stock_opname_locations")
+    .update({ is_complete: isComplete })
+    .eq("id", locationId);
+  return { error: error ? error.message : null };
 }
 
 export async function getStockOpnameCounts(sessionId: string, locationId?: string): Promise<any[]> {
