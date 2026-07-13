@@ -60,7 +60,7 @@ export default function BottomNav() {
   return (
     <div className="md:hidden fixed bottom-0 left-0 w-full z-50 pb-safe pointer-events-none">
       {/* Container for the navbar */}
-      <div className="relative mx-auto w-full glass-panel border-b-0 border-l-0 border-r-0 rounded-t-3xl px-6 h-[74px] flex items-center justify-start overflow-x-auto no-scrollbar gap-2 pointer-events-auto scroll-smooth">
+      <div className="relative mx-auto w-full glass-panel border-b-0 border-l-0 border-r-0 rounded-t-3xl px-4 h-[74px] flex items-center justify-start overflow-x-auto no-scrollbar gap-2 pointer-events-auto scroll-smooth">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -72,27 +72,23 @@ export default function BottomNav() {
               key={item.name}
               href={item.href}
               ref={isActive ? activeRef : null}
-              className="relative flex flex-col items-center justify-center min-w-[68px] flex-shrink-0 h-full py-1"
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 rounded-2xl flex-shrink-0 transition-all duration-300",
+                isActive
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/25 font-bold"
+                  : "text-slate-600 hover:bg-slate-100/60 font-medium"
+              )}
             >
-              {/* Active Indicator / Floating Circle */}
-              {isActive && (
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full border-[4px] border-white/20 glass-active flex items-center justify-center transition-all duration-300 shadow-xl">
-                  <Icon className="w-6 h-6 text-blue-700" />
-                </div>
-              )}
-
-              {/* Inactive Icon */}
-              {!isActive && (
-                <Icon className="w-6 h-6 mb-1 text-slate-500 transition-colors duration-300" />
-              )}
-
-              {/* Label */}
+              <Icon
+                className={cn(
+                  "w-5 h-5 flex-shrink-0 transition-colors",
+                  isActive ? "text-white" : "text-slate-500"
+                )}
+              />
               <span
                 className={cn(
-                  "text-[10px] font-medium transition-all duration-300 text-center leading-tight whitespace-nowrap",
-                  isActive
-                    ? "opacity-100 translate-y-4 text-blue-800 font-bold"
-                    : "opacity-100 text-slate-600 font-semibold"
+                  "text-xs whitespace-nowrap transition-colors",
+                  isActive ? "text-white font-bold" : "text-slate-600"
                 )}
               >
                 {item.name}
