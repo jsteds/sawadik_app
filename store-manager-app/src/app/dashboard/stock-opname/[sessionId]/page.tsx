@@ -25,6 +25,7 @@ export default function StockOpnameSessionPage({
 }) {
   const router = useRouter();
   const { profile } = useAuth();
+  const isAreaManager = profile?.role === "area_manager";
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
   const [locations, setLocations] = useState<StockOpnameLocation[]>([]);
@@ -238,20 +239,36 @@ export default function StockOpnameSessionPage({
             Generate Countsheet
           </button>
 
-          <button
-            onClick={handleUploadToRepotin}
-            disabled={uploading || loading}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all text-sm"
-          >
-            {uploading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <UploadCloud className="w-4 h-4" />
-            )}
-            Upload ke Repot.in
-          </button>
+          {!isAreaManager && (
+            <button
+              onClick={handleUploadToRepotin}
+              disabled={uploading || loading}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all text-sm"
+            >
+              {uploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <UploadCloud className="w-4 h-4" />
+              )}
+              Upload ke Repot.in
+            </button>
+          )}
         </div>
       </div>
+
+      {isAreaManager && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 text-lg font-bold">
+            🛡️
+          </div>
+          <div>
+            <p className="font-bold text-blue-900 text-sm">Akses Area Manager (Pantau Hasil Countsheet)</p>
+            <p className="text-blue-700 text-xs mt-0.5">
+              Anda hanya dapat melihat laporan dan mengunduh (Generate Countsheet) hasil hitungan fisik yang telah diproses. Input fisik dan penambahan lokasi dinonaktifkan.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stats bar */}
       {!loading && items.length > 0 && (
@@ -303,7 +320,7 @@ export default function StockOpnameSessionPage({
               <MapPin className="w-5 h-5 text-blue-500" />
               Lokasi Hitung Fisik
             </h2>
-            {items.length > 0 && (
+            {!isAreaManager && items.length > 0 && (
               <button
                 onClick={() => setIsAddingLocation(!isAddingLocation)}
                 className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
@@ -313,7 +330,7 @@ export default function StockOpnameSessionPage({
             )}
           </div>
 
-          {isAddingLocation && (
+          {!isAreaManager && isAddingLocation && (
             <form
               onSubmit={handleAddLocation}
               className="bg-blue-50/60 border border-blue-200 p-3 rounded-2xl flex gap-2"
@@ -347,6 +364,8 @@ export default function StockOpnameSessionPage({
               <p className="text-slate-500 text-sm">
                 {items.length === 0
                   ? "Upload countsheet terlebih dahulu sebelum menambah lokasi."
+                  : isAreaManager
+                  ? "Belum ada lokasi hitung yang ditambahkan di sesi ini."
                   : "Klik \"Tambah Lokasi\" untuk mendata rak/area hitung."}
               </p>
             </div>
@@ -359,12 +378,17 @@ export default function StockOpnameSessionPage({
                 return (
                   <div
                     key={loc.id}
-                    onClick={() =>
+                    onClick={() => {
+                      if (isAreaManager) return;
                       router.push(
                         `/dashboard/stock-opname/${sessionId}/location/${loc.id}`
-                      )
-                    }
-                    className="bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 p-4 rounded-2xl cursor-pointer transition-all group"
+                      );
+                    }}
+                    className={`bg-white border border-slate-200 p-4 rounded-2xl transition-all group ${
+                      isAreaManager
+                        ? "cursor-default"
+                        : "cursor-pointer hover:border-blue-300 hover:bg-blue-50/30"
+                    }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -391,7 +415,9 @@ export default function StockOpnameSessionPage({
                           </p>
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                      {!isAreaManager && (
+                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                      )}
                     </div>
                   </div>
                 );

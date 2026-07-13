@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, RefreshCw, AlertCircle, FileText } from "lucide-react";
+import { Download, RefreshCw, AlertCircle, FileText, Printer } from "lucide-react";
 import "./name-tag.css";
 
 export default function NameTagGenerator() {
@@ -46,31 +46,101 @@ export default function NameTagGenerator() {
 
     try {
       setIsGenerating(true);
-      // Dynamically import html2pdf
-      const html2pdf = (await import("html2pdf.js")).default;
-      
-      const printTarget = document.getElementById('printTarget');
-      if (!printTarget) {
-        setIsGenerating(false);
-        return;
+
+      // Pastikan font Blueberry Sans Original siap digunakan di browser
+      await document.fonts.ready;
+
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      // Skala ketajaman gambar (10px per mm = ~254 DPI, resolusi tinggi untuk cetak)
+      const pxPerMm = 10;
+      const pageW = 210 * pxPerMm; // 2100 px
+      const pageH = 297 * pxPerMm; // 2970 px
+
+      const cardsPerPage = 60; // 4 kolom x 15 baris
+      const cardW = 48 * pxPerMm; // 480 px (4.8 cm)
+      const cardH = 16 * pxPerMm; // 160 px (1.6 cm)
+      const gapX = 2 * pxPerMm; // 20 px (0.2 cm)
+      const gapY = 2 * pxPerMm; // 20 px (0.2 cm)
+      const startX = 6 * pxPerMm; // 60 px (margin kiri)
+      const startY = 14.5 * pxPerMm; // 145 px (margin atas)
+
+      const totalPages = Math.ceil(validNames.length / cardsPerPage);
+
+      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+        const canvas = document.createElement("canvas");
+        canvas.width = pageW;
+        canvas.height = pageH;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+
+        // Background putih A4
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, pageW, pageH);
+
+        const startIdx = pageIdx * cardsPerPage;
+        const endIdx = Math.min(startIdx + cardsPerPage, validNames.length);
+
+        for (let i = startIdx; i < endIdx; i++) {
+          const localIdx = i - startIdx;
+          const col = localIdx % 4;
+          const row = Math.floor(localIdx / 4);
+
+          const x = startX + col * (cardW + gapX);
+          const y = startY + row * (cardH + gapY);
+
+          // 1. Garis potong kartu (dashed border slate-300)
+          ctx.strokeStyle = "#cbd5e1";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([8, 6]);
+          ctx.strokeRect(x, y, cardW, cardH);
+          ctx.setLineDash([]);
+
+          // 2. Teks nama karyawan dengan font asli Blueberry Sans Original
+          const name = validNames[i];
+          const len = name.length;
+          let fontSizePx = 52; // setara ~18pt pada skala 10px/mm
+          if (len > 7 && len <= 9) fontSizePx = 44;
+          else if (len > 9 && len <= 12) fontSizePx = 38;
+          else if (len > 12 && len <= 16) fontSizePx = 32;
+          else if (len > 16) fontSizePx = 26;
+
+          ctx.font = `normal ${fontSizePx}px "Blueberry Sans Original", sans-serif`;
+          ctx.fillStyle = "#0f172a"; // slate-900
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          ctx.fillText(name, x + cardW / 2, y + cardH / 2);
+        }
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.98);
+        if (pageIdx > 0) doc.addPage();
+        doc.addImage(imgData, "JPEG", 0, 0, 210, 297);
       }
 
-      const opt = {
-        margin:       0,
-        filename:     'Name_Tags_A4_Sempurna.pdf',
-        image:        { type: 'jpeg' as const, quality: 1.0 },
-        html2canvas:  { scale: 3, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-        pagebreak:    { mode: ['css'] }
-      };
-
-      await html2pdf().set(opt).from(printTarget).save();
+      doc.save("Name_Tags_A4_Standar_Store.pdf");
     } catch (err) {
-      console.error(err);
-      alert('Gagal membuat file PDF. Silakan coba lagi.');
+      console.error("PDF generation error:", err);
+      alert(
+        "Gagal membuat file PDF: " +
+          (err instanceof Error ? err.message : String(err))
+      );
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handlePrint = () => {
+    if (validNames.length === 0) {
+      alert("Silakan masukkan nama karyawan terlebih dahulu.");
+      return;
+    }
+    window.print();
   };
 
   if (!isClient) return null; // Avoid hydration mismatch
@@ -129,20 +199,27 @@ export default function NameTagGenerator() {
               className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium text-sm ${
                 isGenerating 
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/20'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/20 shadow-sm'
               }`}
             >
               {isGenerating ? (
                 <>
                   <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                  Memproses...
+                  Membuat PDF A4...
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  Download PDF
+                  Download PDF A4 (Standar Store)
                 </>
               )}
+            </button>
+            <button 
+              onClick={handlePrint}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium text-sm bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 border border-blue-500/20 shadow-sm"
+            >
+              <Printer className="w-4 h-4" />
+              Cetak Langsung (Print)
             </button>
           </div>
         </div>
@@ -187,7 +264,7 @@ export default function NameTagGenerator() {
       </div>
 
       {/* WADAH PENGOLAHAN RENDER ENGINE PDF */}
-      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '210mm' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '210mm', zIndex: -50, opacity: 0.01, pointerEvents: 'none' }}>
         <div id="printTarget">
           {printPages.map((pageNames, pageIdx) => (
             <div key={pageIdx} className="pdf-sheet font-blueberry">

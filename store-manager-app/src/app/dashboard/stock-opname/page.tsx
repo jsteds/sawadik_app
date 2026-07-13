@@ -21,18 +21,19 @@ export default function StockOpnamePage() {
   const [repotinLoading, setRepotinLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isAreaManager = profile?.role === "area_manager";
   const effectiveStoreId = isSuperAdmin ? activeStoreId : profile?.store_id;
 
   useEffect(() => {
-    if (effectiveStoreId) {
+    if (effectiveStoreId || isAreaManager) {
       loadSessions();
     }
-  }, [effectiveStoreId]);
+  }, [effectiveStoreId, isAreaManager]);
 
   async function loadSessions() {
-    if (!effectiveStoreId) return;
     setLoading(true);
-    const data = await getStockOpnameSessions(effectiveStoreId);
+    const storeFilter = isAreaManager ? (activeStoreId || undefined) : (effectiveStoreId || undefined);
+    const data = await getStockOpnameSessions(storeFilter);
     setSessions(data);
     setLoading(false);
   }
@@ -248,7 +249,7 @@ export default function StockOpnamePage() {
     document.body.removeChild(link);
   };
 
-  if (!effectiveStoreId) {
+  if (!effectiveStoreId && !isAreaManager) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
         Silakan pilih toko terlebih dahulu.
@@ -285,25 +286,43 @@ export default function StockOpnamePage() {
             Format Countsheet
           </button>
 
-          <button
-            onClick={handleFetchFromRepotin}
-            disabled={repotinLoading || syncLoading}
-            className="glass-button bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/50 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 disabled:opacity-70 transition-all text-sm"
-          >
-            {repotinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Ambil Data dari Repot.in
-          </button>
+          {!isAreaManager && (
+            <>
+              <button
+                onClick={handleFetchFromRepotin}
+                disabled={repotinLoading || syncLoading}
+                className="glass-button bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/50 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 disabled:opacity-70 transition-all text-sm"
+              >
+                {repotinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Ambil Data dari Repot.in
+              </button>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={syncLoading || repotinLoading}
-            className="glass-button bg-blue-600 hover:bg-blue-700 text-white border-blue-500/50 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-blue-600/20 disabled:opacity-70 transition-all text-sm"
-          >
-            {syncLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Upload Countsheet
-          </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={syncLoading || repotinLoading}
+                className="glass-button bg-blue-600 hover:bg-blue-700 text-white border-blue-500/50 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md shadow-blue-600/20 disabled:opacity-70 transition-all text-sm"
+              >
+                {syncLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Upload Countsheet
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {isAreaManager && (
+        <div className="mb-8 p-5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 text-lg font-bold">
+            🛡️
+          </div>
+          <div>
+            <p className="font-bold text-blue-900 text-sm">Akses Area Manager (Pantau Hasil Countsheet)</p>
+            <p className="text-blue-700 text-xs mt-0.5">
+              Anda dapat melihat daftar sesi Stock Opname dan mengunduh (Generate Countsheet) hasil akhir yang telah diproses.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Info Banner Mode Perhitungan */}
       <div className="mb-8 p-5 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-transparent border border-blue-200/60 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -338,25 +357,29 @@ export default function StockOpnamePage() {
             </div>
             <h3 className="text-slate-800 font-bold mb-1">Belum ada Sesi Opname</h3>
             <p className="text-slate-500 text-sm max-w-md mx-auto mb-6">
-              Mulai dengan menarik data dari Repot.in atau upload file Countsheet F&B Anda untuk memulai perhitungan fisik.
+              {isAreaManager
+                ? "Belum ada sesi Stock Opname yang tercatat."
+                : "Mulai dengan menarik data dari Repot.in atau upload file Countsheet F&B Anda untuk memulai perhitungan fisik."}
             </p>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={handleFetchFromRepotin}
-                disabled={repotinLoading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm transition-colors"
-              >
-                {repotinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Ambil Data dari Repot.in
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm transition-colors"
-              >
-                <Upload className="w-4 h-4" />
-                Upload Countsheet
-              </button>
-            </div>
+            {!isAreaManager && (
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={handleFetchFromRepotin}
+                  disabled={repotinLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm transition-colors"
+                >
+                  {repotinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Ambil Data dari Repot.in
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload Countsheet
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

@@ -25,6 +25,7 @@ export default function StockOpnameCountPage({
 }) {
   const router = useRouter();
   const { profile } = useAuth();
+  const isAreaManager = profile?.role === "area_manager";
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -207,6 +208,16 @@ export default function StockOpnameCountPage({
         </div>
       </div>
 
+      {isAreaManager && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3">
+          <span className="text-xl">🛡️</span>
+          <div>
+            <p className="font-bold text-blue-900 text-sm">Mode Pantau Area Manager (Read-Only)</p>
+            <p className="text-blue-700 text-xs mt-0.5">Penginputan jumlah fisik dinonaktifkan untuk peran Area Manager.</p>
+          </div>
+        </div>
+      )}
+
       {/* Search Box */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-4 sticky top-4 z-20">
         <div className="relative">
@@ -309,8 +320,8 @@ export default function StockOpnameCountPage({
                         const num = cleaned === "" ? 0 : parseInt(cleaned, 10);
                         updateLocalQty(item.id, num);
                       }}
-                      disabled={isSaving}
-                      className="w-full text-center font-bold text-xl py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 hide-arrows"
+                      disabled={isSaving || isAreaManager}
+                      className="w-full text-center font-bold text-xl py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 hide-arrows disabled:opacity-60"
                     />
                     {isSaving && (
                       <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -321,7 +332,7 @@ export default function StockOpnameCountPage({
 
                   <button
                     onClick={() => updateLocalQty(item.id, qty + 1)}
-                    disabled={isSaving}
+                    disabled={isSaving || isAreaManager}
                     className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-700 disabled:opacity-40 transition-colors"
                   >
                     <Plus className="w-4 h-4" />
@@ -332,9 +343,9 @@ export default function StockOpnameCountPage({
                   {/* Save button */}
                   <button
                     onClick={() => handleSaveItem(item.id)}
-                    disabled={isSaving || !isDirty}
+                    disabled={isSaving || isAreaManager || !isDirty}
                     className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                      isDirty
+                      isDirty && !isAreaManager
                         ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
                         : "bg-slate-100 text-slate-400 cursor-not-allowed"
                     }`}
@@ -350,8 +361,8 @@ export default function StockOpnameCountPage({
                     <button
                       key={n}
                       onClick={() => updateLocalQty(item.id, qty + n)}
-                      disabled={isSaving}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
+                      disabled={isSaving || isAreaManager}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors disabled:opacity-40"
                     >
                       +{n}
                     </button>
@@ -397,26 +408,28 @@ export default function StockOpnameCountPage({
         </div>
       )}
 
-      {/* Save Location button — always visible at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-3 flex flex-col gap-2 max-w-2xl mx-auto">
-        {pendingSave.size > 0 && (
-          <p className="text-xs text-amber-600 font-semibold text-center">
-            ⚠ Ada {pendingSave.size} item yang belum di-Save. Klik tombol Save pada masing-masing item terlebih dahulu.
-          </p>
-        )}
-        <button
-          onClick={handleCompleteLocation}
-          disabled={completingLocation || pendingSave.size > 0}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3.5 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all"
-        >
-          {completingLocation ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <CheckCircle2 className="w-5 h-5" />
+      {/* Save Location button — hidden for Area Manager */}
+      {!isAreaManager && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-3 flex flex-col gap-2 max-w-2xl mx-auto">
+          {pendingSave.size > 0 && (
+            <p className="text-xs text-amber-600 font-semibold text-center">
+              ⚠ Ada {pendingSave.size} item yang belum di-Save. Klik tombol Save pada masing-masing item terlebih dahulu.
+            </p>
           )}
-          Save Perhitungan di {locationName || "Lokasi Ini"}
-        </button>
-      </div>
+          <button
+            onClick={handleCompleteLocation}
+            disabled={completingLocation || pendingSave.size > 0}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3.5 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all"
+          >
+            {completingLocation ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5" />
+            )}
+            Save Perhitungan di {locationName || "Lokasi Ini"}
+          </button>
+        </div>
+      )}
 
       {/* Bottom padding for fixed button */}
       <div className="h-24" />
