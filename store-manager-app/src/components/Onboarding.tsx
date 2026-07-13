@@ -10,13 +10,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Store, User, IdCard, Sparkles, ArrowRight, Loader2, Search, Check } from "lucide-react";
 
 import { getUniqueStoresFromSheet } from "@/lib/actions/googleSheets";
+function normalizeRole(role: string): string {
+  if (role === "store_manager" || role === "manager") return "manager";
+  if (role === "area_manager") return "area_manager";
+  if (role === "admin" || role === "super_admin") return role;
+  return "staff";
+}
+
 export default function Onboarding({ selectedRole }: { selectedRole: string }) {
   const { session, refreshProfile } = useAuth();
   
-  const [userRole, setUserRole] = useState<string>(selectedRole);
+  const [userRole, setUserRole] = useState<string>(normalizeRole(selectedRole));
 
   useEffect(() => {
-    setUserRole(selectedRole);
+    setUserRole(normalizeRole(selectedRole));
   }, [selectedRole]);
 
   const isStaff = userRole === "staff";
@@ -111,7 +118,7 @@ export default function Onboarding({ selectedRole }: { selectedRole: string }) {
           full_name: fullName,
           nik: nik,
           store_id: storeId,
-          role: userRole,
+          role: normalizeRole(userRole),
           status: 'aktif',
         }, { onConflict: 'auth_user_id' });
 

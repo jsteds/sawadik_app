@@ -42,7 +42,7 @@ export default function BottomNav() {
   return (
     <div className="md:hidden fixed bottom-0 left-0 w-full z-50 pb-safe pointer-events-none">
       {/* Container for the navbar */}
-      <div className="relative mx-auto w-full glass-panel border-b-0 border-l-0 border-r-0 rounded-t-3xl px-2 h-[72px] flex items-center justify-around pointer-events-auto">
+      <div className="relative mx-auto w-full glass-panel border-b-0 border-l-0 border-r-0 rounded-t-3xl px-3 h-[72px] flex items-center justify-between overflow-x-auto no-scrollbar gap-2 pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -53,7 +53,7 @@ export default function BottomNav() {
             <Link
               key={item.name}
               href={item.href}
-              className="relative flex flex-col items-center justify-center w-16 h-full"
+              className="relative flex flex-col items-center justify-center min-w-[64px] flex-shrink-0 h-full"
             >
               {/* Active Indicator / Floating Circle */}
               {isActive && (

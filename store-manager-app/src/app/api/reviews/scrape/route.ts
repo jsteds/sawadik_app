@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const serpApiKey = process.env.SERPAPI_API_KEY;
+    const serpApiKey = process.env.SERPAPI_API_KEY || process.env.NEXT_PUBLIC_SERPAPI_API_KEY;
     if (!serpApiKey) {
       return Response.json(
         {
           error:
-            "SERPAPI_API_KEY belum dikonfigurasi. Tambahkan di .env.local",
+            "SERPAPI_API_KEY belum dikonfigurasi. Jika di Vercel (Production), tambahkan di Vercel Settings -> Environment Variables. Jika di lokal, pastikan ada di .env.local dan restart server.",
         },
         { status: 500 }
       );
@@ -65,19 +65,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Resolve short URLs
+    // Resolve short URLs robustly
     let resolvedUrl = google_maps_url;
-    if (google_maps_url.includes("maps.app.goo.gl") || google_maps_url.includes("goo.gl/maps")) {
+    if (google_maps_url.includes("maps.app.goo.gl") || google_maps_url.includes("goo.gl")) {
       try {
-        const response = await fetch(google_maps_url, { method: "GET", redirect: "manual" });
-        const location = response.headers.get("location");
-        if (response.status >= 300 && response.status < 400 && location) {
-          resolvedUrl = location;
-        } else {
+        const response = await fetch(google_maps_url, { method: "GET", redirect: "follow" });
+        if (response.url) {
           resolvedUrl = response.url;
         }
       } catch (err) {
-        console.warn("Failed to resolve short URL", err);
+        console.warn("Failed to resolve short URL with follow, trying manual", err);
       }
     }
 
@@ -86,15 +83,11 @@ export async function POST(request: NextRequest) {
 
     // Step 1: If no place_id extracted, search for the place first
     if (!placeId) {
-      // Extract place name from URL
-      const placeNameMatch = resolvedUrl.match(
-        /place\/([^/@]+)/
-      );
+      const placeNameMatch = resolvedUrl.match(/place\/([^/@]+)/);
       const searchQuery = placeNameMatch
         ? decodeURIComponent(placeNameMatch[1].replace(/\+/g, " "))
         : resolvedUrl;
 
-      // Use SerpAPI Google Maps search to find place_id
       const searchUrl = new URL("https://serpapi.com/search.json");
       searchUrl.searchParams.set("engine", "google_maps");
       searchUrl.searchParams.set("q", searchQuery);
@@ -104,18 +97,17 @@ export async function POST(request: NextRequest) {
       const searchRes = await fetch(searchUrl.toString());
       const searchData = await searchRes.json();
 
-      if (
-        searchData.local_results &&
-        searchData.local_results.length > 0
-      ) {
-        placeId = searchData.local_results[0].place_id || null;
+      if (searchData.place_results?.place_id) {
+        placeId = searchData.place_results.place_id;
+      } else if (searchData.local_results && searchData.local_results.length > 0) {
+        placeId = searchData.local_results[0].place_id || searchData.local_results[0].data_id || null;
       }
 
       if (!placeId) {
         return Response.json(
           {
             error:
-              "Tidak dapat menemukan Place ID dari URL. Pastikan URL Google Maps valid.",
+              "Tidak dapat menemukan Place ID dari URL. Pastikan URL Google Maps valid atau masukkan nama tempat yang spesifik.",
           },
           { status: 400 }
         );

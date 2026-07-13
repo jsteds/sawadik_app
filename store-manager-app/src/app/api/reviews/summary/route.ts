@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch SerpApi quota
     let serpapi_quota = null;
-    const serpApiKey = process.env.SERPAPI_API_KEY;
+    const serpApiKey = process.env.SERPAPI_API_KEY || process.env.NEXT_PUBLIC_SERPAPI_API_KEY;
     if (serpApiKey) {
       try {
         const accRes = await fetch(`https://serpapi.com/account.json?api_key=${serpApiKey}`);

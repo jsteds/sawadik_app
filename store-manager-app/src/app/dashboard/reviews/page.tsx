@@ -346,15 +346,6 @@ export default function ReviewsPage() {
     }
   };
 
-  // Set default date range to current month
-  useEffect(() => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    setStartDate(firstDay.toISOString().split("T")[0]);
-    setEndDate(lastDay.toISOString().split("T")[0]);
-  }, []);
-
   const formatDate = (d: string | null) => {
     if (!d) return "-";
     return new Date(d).toLocaleDateString("id-ID", {
@@ -686,13 +677,27 @@ export default function ReviewsPage() {
 
       {/* ─── Reviews Table ─────────────────────────────────────────── */}
       <div className="mx-2 mt-6 bg-white/80 backdrop-blur-md rounded-[2rem] p-6 shadow-sm border border-white/50">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium text-slate-700">
-            Daftar Ulasan
-            <span className="ml-2 text-sm font-normal text-slate-400">
-              ({pagination.total} ulasan)
-            </span>
-          </h3>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-medium text-slate-700">
+              Daftar Ulasan
+              <span className="ml-2 text-sm font-normal text-slate-400">
+                ({pagination.total} ulasan)
+              </span>
+            </h3>
+            {(startDate || endDate || sentimentFilter) && (
+              <button
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setSentimentFilter("");
+                }}
+                className="text-xs px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium transition-colors"
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
           {loading && (
             <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
           )}
